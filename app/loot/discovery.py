@@ -50,10 +50,11 @@ async def _fetch_instances(db: AsyncSession) -> list[dict]:
     key = cache_key("journal-instance/index", {})
     cached = await get_cached(db, key)
     if cached is not None:
-        return cached
-    client = BlizzardClient()
-    data = await client.journal_instances()
-    await set_cached(db, key, data, get_settings().cache_ttl_journal)
+        data = cached
+    else:
+        client = BlizzardClient()
+        data = await client.journal_instances()
+        await set_cached(db, key, data, get_settings().cache_ttl_journal)
     return data["instances"]
 
 
