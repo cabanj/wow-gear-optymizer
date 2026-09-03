@@ -90,12 +90,17 @@ def store_results(conn, run_id: str, json2_text: str) -> None:
             WHERE id=%s
         """, (ver["simc_version"], ver.get("simc_commit"), ver.get("wow_build"), run_id))
 
-        # baseline player
+        # baseline player (compact raw: full player blob is ~1MB, keep essentials)
         for player in sim.get("players", []):
             cd = player.get("collected_data") or {}
             dps = cd.get("dps") or {}
             if not dps:
                 continue
+            slim = {"name": player.get("name"),
+                    "specialization": player.get("specialization"),
+                    "collected_data": cd,
+                    "gear": player.get("gear"),
+                    "talents": player.get("talents")}
             cur.execute("""
                 INSERT INTO simulation_results
                 (simulation_run_id, profileset_name, profile_type, mean, median,
@@ -107,7 +112,7 @@ def store_results(conn, run_id: str, json2_text: str) -> None:
                 dps.get("min", 0), dps.get("max", 0), dps.get("std_dev", 0),
                 dps.get("iterations", 0) or sim.get("options", {}).get("iterations", 0),
                 json.dumps({"error": dps.get("error")}),
-                json.dumps(player)[:100000],
+                json.dumps(slim),
             ))
 
         # profilesets
@@ -126,7 +131,7 @@ def store_results(conn, run_id: str, json2_text: str) -> None:
                 r.get("iterations", 0),
                 json.dumps({"mean_error": r.get("mean_error"),
                             "mean_stddev": r.get("mean_stddev")}),
-                json.dumps(r)[:100000],
+                json.dumps(r),
             ))
 
 
