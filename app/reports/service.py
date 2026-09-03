@@ -6,14 +6,14 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .blizzard.cache import cache_key, get_cached, set_cached
-from .config import get_settings
-from .db.models import Character, CharacterSnapshot, Report, SimulationResult, SimulationRun
-from .loot.candidates import CandidateItem, generate_candidates, mark_raid_encounters
-from .loot.discovery import detect_current_content
-from .loot.upgrade_rules import TrackPolicy
-from .simc.profile_builder import Candidate, build_profileset_input
-from .simc.parser import compute_ranking, extract_results, extract_version, parse_json2
+from ..blizzard.cache import cache_key, get_cached, set_cached
+from ..config import get_settings
+from ..db.models import Character, CharacterSnapshot, Report, SimulationResult, SimulationRun
+from ..loot.candidates import CandidateItem, generate_candidates, mark_raid_encounters
+from ..loot.discovery import detect_current_content
+from ..loot.upgrade_rules import TrackPolicy
+from ..simc.profile_builder import Candidate, build_profileset_input
+from ..simc.parser import compute_ranking, extract_results, extract_version, parse_json2
 
 
 def _to_builder_candidate(c: CandidateItem, worn: dict) -> Candidate:
@@ -102,7 +102,7 @@ async def build_report_data(db: AsyncSession, run_id: uuid.UUID) -> dict:
         select(SimulationResult).where(SimulationResult.simulation_run_id == run_id)
     )).scalars().all()
 
-    from .simc.parser import ProfileResult
+    from ..simc.parser import ProfileResult
     prs = [ProfileResult(
         name=r.profileset_name or "Baseline",
         dps_mean=float(r.mean), dps_median=float(r.median),
