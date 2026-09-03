@@ -135,12 +135,14 @@ async def index(request: Request, user: User | None = Depends(get_current_user),
 
 
 @app.get("/characters", response_class=HTMLResponse)
-async def characters_page(request: Request, user: User | None = Depends(get_current_user),
+async def characters_page(request: Request, character_id: str | None = None,
+                          user: User | None = Depends(get_current_user),
                           db: AsyncSession = Depends(get_db)):
     if user is None:
         return RedirectResponse("/")
     chars = (await db.execute(
         select(Character).join(BlizzardAccount).where(BlizzardAccount.user_id == user.id)
+        .order_by(Character.name)
     )).scalars().all()
     snap_times = {}
     for c in chars:
@@ -151,15 +153,19 @@ async def characters_page(request: Request, user: User | None = Depends(get_curr
         snap_times[str(c.id)] = s.timestamp.strftime("%Y-%m-%d %H:%M") if s else None
     for c in chars:
         c.snapshot_time = snap_times.get(str(c.id))
+    current = next((c for c in chars if str(c.id) == character_id),
+                   next((c for c in chars if c.selected), chars[0] if chars else None))
     from .reports.pages import character_gear
-    gear = {}
-    for c in chars:
+    gear_list = []
+    if current is not None:
         try:
-            gear[str(c.id)] = await character_gear(db, c.id)
+            gear_list = await character_gear(db, current.id)
         except Exception:
-            gear[str(c.id)] = []
+            gear_list = []
     return templates.TemplateResponse(request, "characters.html",
-                                       {"user": user, "characters": chars, "gear": gear})
+                                       {"user": user, "characters": chars,
+                                        "current": current, "gear": gear_list,
+                                        "all_ids": [str(c.id) for c in chars]})
 
 
 @app.get("/reports", response_class=HTMLResponse)

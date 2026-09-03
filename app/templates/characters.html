@@ -1,29 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Characters</h1>
-{% if not characters %}
-<div class="empty">
-  <p>No characters yet.</p>
-  <p>Click <strong>Refresh from Blizzard</strong> to pull your account characters,
-     or add one manually below.</p>
-</div>
-{% endif %}
-<p>
-  <button class="btn ghost" id="refresh">Refresh from Blizzard</button>
-  <span class="meta" id="msg"></span>
-</p>
-<form id="select-form">
-  <div class="cards">
+<div class="char-layout">
+  <aside class="char-menu">
     {% for c in characters %}
-    <label class="char-card pick">
-      <span class="pick"><input type="checkbox" value="{{ c.id }}" {% if c.selected %}checked{% endif %}>
-      <span class="nm">{{ c.name }}</span></span>
-      <div class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }} {{ c.active_spec_name or '' }}</div>
-      <div class="meta">snapshot: {{ c.snapshot_time or '—' }}</div>
-    </label>
-    {% if gear[c.id|string] %}
+    <a class="menu-item{% if current and c.id == current.id %} active{% endif %}"
+       href="/characters?character_id={{ c.id }}">
+      <span class="nm">{{ c.name }}</span>
+      <span class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }}</span>
+      {% if c.selected %}<span class="dot" title="selected for simulations">●</span>{% endif %}
+    </a>
+    {% endfor %}
+    {% if not characters %}<p class="meta">No characters yet.</p>{% endif %}
+  </aside>
+  <section class="char-detail">
+    {% if current %}
+    <h2>{{ current.name }} <span class="meta">{{ current.realm_slug }} · {{ current.class_name or '?' }} {{ current.active_spec_name or '' }}</span></h2>
+    <p class="meta">snapshot: {{ current.snapshot_time or '—' }}</p>
+    <form id="select-form">
+      <label class="pick"><input type="checkbox" id="sel-one" {% if current.selected %}checked{% endif %}>
+        Include in daily simulations</label>
+      <button class="btn" type="submit">Save</button>
+      <span class="meta" id="msg"></span>
+    </form>
+    {% if gear %}
+    <h3>Equipped gear</h3>
     <div class="gear-grid">
-      {% for g in gear[c.id|string] %}
+      {% for g in gear %}
       <a class="gear-item" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
         {% if g.icon %}<img src="{{ g.icon }}" alt="" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
         <span class="gear-ilvl">{{ g.ilvl }}</span>
@@ -32,11 +35,19 @@
       </a>
       {% endfor %}
     </div>
+    {% else %}
+    <div class="empty"><p>No gear snapshot for this character yet.</p></div>
     {% endif %}
-    {% endfor %}
-  </div>
-  {% if characters %}<p><button class="btn" type="submit">Save selection</button></p>{% endif %}
-</form>
+    {% else %}
+    <div class="empty"><p>Select a character from the menu.</p></div>
+    {% endif %}
+  </section>
+</div>
+<h2>Sync</h2>
+<p>
+  <button class="btn ghost" id="refresh">Refresh from Blizzard</button>
+  <span class="meta" id="msg2"></span>
+</p>
 <h2>Add character manually</h2>
 <p class="meta">Useful when Blizzard's character list comes back empty. Needs realm + exact name.</p>
 <form class="row" id="add-form">
@@ -46,8 +57,9 @@
   <span class="meta" id="add-msg"></span>
 </form>
 <script>
+const allIds = {{ all_ids|tojson }};
 document.getElementById('refresh').onclick = async () => {
-  const m = document.getElementById('msg');
+  const m = document.getElementById('msg2');
   m.textContent = 'Refreshing…';
   const r = await fetch('/api/characters/refresh', {method: 'POST'});
   m.textContent = r.ok ? 'Done — reloading…' : 'Refresh failed (' + r.status + ')';
@@ -55,10 +67,16 @@ document.getElementById('refresh').onclick = async () => {
 };
 document.getElementById('select-form').onsubmit = async (e) => {
   e.preventDefault();
-  const ids = [...document.querySelectorAll('.char-card input:checked')].map(i => i.value);
+  const one = document.getElementById('sel-one');
+  let ids = new Set(allIds.filter(id => document.querySelector(`.menu-item .dot`) && false) || []);
+  // reload current selection from server, then toggle this one
+  const cur = await (await fetch('/api/characters')).json();
+  ids = new Set(cur.filter(c => c.selected).map(c => c.id));
+  const myId = "{{ current.id if current else '' }}";
+  if (one.checked) ids.add(myId); else ids.delete(myId);
   const r = await fetch('/api/characters/select', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({character_ids: ids})
+    body: JSON.stringify({character_ids: [...ids]})
   });
   document.getElementById('msg').textContent = r.ok ? 'Saved ✓' : 'Save failed';
 };
