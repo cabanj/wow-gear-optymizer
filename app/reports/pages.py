@@ -14,6 +14,57 @@ GEAR_ORDER = ["HEAD", "NECK", "SHOULDER", "BACK", "CHEST", "WRIST", "HANDS",
               "WAIST", "LEGS", "FEET", "FINGER_1", "FINGER_2",
               "TRINKET_1", "TRINKET_2", "MAIN_HAND", "OFF_HAND"]
 
+SIMC_SLOT = {"head": "HEAD", "neck": "NECK", "shoulder": "SHOULDER", "back": "BACK",
+             "chest": "CHEST", "wrist": "WRIST", "hands": "HANDS", "waist": "WAIST",
+             "legs": "LEGS", "feet": "FEET", "finger1": "FINGER_1", "finger2": "FINGER_2",
+             "trinket1": "TRINKET_1", "trinket2": "TRINKET_2",
+             "main_hand": "MAIN_HAND", "off_hand": "OFF_HAND"}
+
+STAT_LABELS = {"strength": "Strength", "agility": "Agility", "intellect": "Intellect",
+               "stamina": "Stamina", "crit_rating": "Critical Strike",
+               "haste_rating": "Haste", "mastery_rating": "Mastery",
+               "vers": "Versatility", "versa": "Versatility",
+               "versatility_rating": "Versatility", "avoidance": "Avoidance",
+               "armor": "Armor", "weapon_dps": "Damage Per Second",
+               "attack_power": "Attack Power", "spell_power": "Spell Power"}
+STAT_ORDER = ["strength", "agility", "intellect", "stamina", "crit_rating",
+              "haste_rating", "mastery_rating", "vers", "versa",
+              "versatility_rating", "avoidance", "armor"]
+
+
+def _pretty_stats(simc_gear_item: dict) -> list[str]:
+    """['+148 Intellect', ...] from a SimC json2 gear entry (scaled values)."""
+    if not simc_gear_item:
+        return []
+    out = []
+    keys = [k for k in STAT_ORDER if simc_gear_item.get(k)] + \
+           sorted(k for k in simc_gear_item
+                  if k not in STAT_ORDER and k not in ("name", "encoded_item", "ilevel")
+                  and isinstance(simc_gear_item.get(k), (int, float)) and simc_gear_item.get(k))
+    for k in keys:
+        v = simc_gear_item[k]
+        label = STAT_LABELS.get(k, k.replace("_", " ").title())
+        out.append(f"+{v:g} {label}")
+    return out
+
+
+async def _simc_gear_stats(db: AsyncSession, character_id) -> dict[str, list[str]]:
+    """Slot -> pretty stat lines from the latest completed sim's baseline gear."""
+    run = (await db.execute(select(SimulationRun).where(
+        SimulationRun.character_id == character_id,
+        SimulationRun.status == "completed")
+        .order_by(SimulationRun.finished_at.desc()))).scalars().first()
+    if run is None:
+        return {}
+    base = (await db.execute(select(SimulationResult).where(
+        SimulationResult.simulation_run_id == run.id,
+        SimulationResult.profileset_name.is_(None)))).scalars().first()
+    if base is None:
+        return {}
+    gear = (base.raw or {}).get("gear") or {}
+    return {SIMC_SLOT[k]: _pretty_stats(v)
+            for k, v in gear.items() if k in SIMC_SLOT and isinstance(v, dict)}
+
 
 async def character_gear(db: AsyncSession, character_id) -> list[dict]:
     """Equipped items by slot for the character page.
@@ -32,6 +83,7 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             break
     if not equipment:
         return []
+    stats_by_slot = await _simc_gear_stats(db, character_id)
     gear = []
     for it in equipment.get("equipped_items", []):
         slot = (it.get("slot") or {}).get("type", "")
@@ -70,6 +122,7 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             "gems": gems,
             "sockets": sockets,
             "enchant": ench,
+            "stats": stats_by_slot.get(slot, []),
         })
     gear.sort(key=lambda g: GEAR_ORDER.index(g["slot"]))
     return gear

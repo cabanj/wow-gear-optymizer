@@ -137,6 +137,7 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 .tip-name { font-weight: 700; font-size: .95rem; }
 .tip-row { font-size: .8rem; color: #cfd6e4; margin-top: .15rem; }
 .tip-ench { color: var(--uncommon); }
+.tip-stat { color: #fff; }
 .empty-sock { color: var(--warn); }
 .tip-hint { color: var(--muted); font-size: .72rem; margin-top: .3rem; }
 .menu-item .dot { color: var(--up); font-size: .8rem; float: right; }
