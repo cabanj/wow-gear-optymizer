@@ -31,8 +31,12 @@ STAT_ORDER = ["strength", "agility", "intellect", "stamina", "crit_rating",
               "versatility_rating", "avoidance", "armor"]
 
 
-def _pretty_stats(simc_gear_item: dict) -> list[str]:
-    """['+148 Intellect', ...] from a SimC json2 gear entry (scaled values)."""
+SECONDARY_STATS = {"CRIT_RATING", "HASTE_RATING", "MASTERY_RATING", "VERSATILITY",
+                   "AVOIDANCE", "LEECH", "SPEED", "STURDINESS"}
+
+
+def _pretty_stats(simc_gear_item: dict) -> list[dict]:
+    """[{'text': '+148 Intellect', 'sec': False}, ...] from SimC json2 gear."""
     if not simc_gear_item:
         return []
     out = []
@@ -43,7 +47,9 @@ def _pretty_stats(simc_gear_item: dict) -> list[str]:
     for k in keys:
         v = simc_gear_item[k]
         label = STAT_LABELS.get(k, k.replace("_", " ").title())
-        out.append(f"+{v:g} {label}")
+        sec = k in ("crit_rating", "haste_rating", "mastery_rating", "vers",
+                    "versa", "versatility_rating", "avoidance")
+        out.append({"text": f"+{v:g} {label}", "sec": sec})
     return out
 
 
@@ -119,7 +125,8 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             if ench:
                 break
         ench = _clean_enchant(ench)
-        armory_stats = [s.get("display", {}).get("display_string", "")
+        armory_stats = [{"text": s.get("display", {}).get("display_string", ""),
+                           "sec": (s.get("type") or {}).get("type") in SECONDARY_STATS}
                         for s in it.get("stats", []) or []
                         if s.get("display", {}).get("display_string")
                         and not s.get("is_negated")]
