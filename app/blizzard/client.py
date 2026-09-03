@@ -34,6 +34,7 @@ class BlizzardClient:
 
     # -- low level ---------------------------------------------------------
     async def get(self, path: str, namespace: str, token: str, **params) -> dict:
+        params.setdefault("namespace", namespace)
         params.setdefault("locale", self.locale)
         headers = {"Authorization": f"Bearer {token}"}
         async with httpx.AsyncClient(timeout=30) as client:
