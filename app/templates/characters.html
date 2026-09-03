@@ -20,12 +20,14 @@
 <div class="char-layout" id="charlayout">
   <aside class="char-menu" id="charmenu">
     {% for c in characters %}
-    <a class="menu-item{% if current and c.id == current.id %} active{% endif %}"
-       href="/characters?character_id={{ c.id }}">
-      <span class="nm" style="color:{{ c.class_color }}">{{ c.name }}</span>
-      <span class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }}</span>
-      {% if c.selected %}<span class="dot" title="selected for simulations">●</span>{% endif %}
-    </a>
+    <div class="menu-item{% if current and c.id == current.id %} active{% endif %}">
+      <input type="checkbox" class="sim-check" data-id="{{ c.id }}" {% if c.selected %}checked{% endif %}
+        title="Include in daily simulations" onclick="event.stopPropagation()">
+      <a href="/characters?character_id={{ c.id }}">
+        <span class="nm" style="color:{{ c.class_color }}">{{ c.name }}</span>
+        <span class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }}</span>
+      </a>
+    </div>
     {% endfor %}
     {% if not characters %}<p class="meta">No characters yet.</p>{% endif %}
   </aside>
@@ -35,12 +37,6 @@
       <div class="nm" style="color:{{ current.class_color }}">{{ current.name }}</div>
       <div class="sub">{{ current.realm_slug }} · {{ current.class_name or '?' }} {{ current.active_spec_name or '' }}</div>
       <div class="meta">snapshot: {{ current.snapshot_time or '—' }}</div>
-      <form id="select-form">
-        <label class="pick"><input type="checkbox" id="sel-one" {% if current.selected %}checked{% endif %}>
-          Simulate</label>
-        <button class="btn" type="submit">Save</button>
-        <span class="meta" id="msg"></span>
-      </form>
     </div>
     {% if gear_left %}
     <h3>Armor</h3>
@@ -98,20 +94,16 @@ document.getElementById('refresh').onclick = async () => {
   m.textContent = r.ok ? 'Done — reloading…' : 'Refresh failed (' + r.status + ')';
   if (r.ok) setTimeout(() => location.reload(), 800);
 };
-const selForm = document.getElementById('select-form');
-if (selForm) selForm.onsubmit = async (e) => {
-  e.preventDefault();
-  const one = document.getElementById('sel-one');
+document.querySelectorAll('.sim-check').forEach(box => box.onchange = async () => {
   const cur = await (await fetch('/api/characters')).json();
   const ids = new Set(cur.filter(c => c.selected).map(c => c.id));
-  const myId = "{{ current.id if current else '' }}";
-  if (one.checked) ids.add(myId); else ids.delete(myId);
+  if (box.checked) ids.add(box.dataset.id); else ids.delete(box.dataset.id);
   const r = await fetch('/api/characters/select', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({character_ids: [...ids]})
   });
-  document.getElementById('msg').textContent = r.ok ? 'Saved ✓' : 'Save failed';
-};
+  if (!r.ok) { box.checked = !box.checked; }
+});
 document.getElementById('add-form').onsubmit = async (e) => {
   e.preventDefault();
   const m = document.getElementById('add-msg');

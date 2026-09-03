@@ -117,10 +117,12 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 /* character layout: side menu + detail */
 .char-layout { display: grid; grid-template-columns: 13rem 1fr; gap: 1rem; align-items: start; }
 .char-menu { display: flex; flex-direction: column; gap: .35rem; position: sticky; top: 4rem; }
-.menu-item { display: block; background: var(--panel); border: 1px solid var(--border);
-  border-radius: .5rem; padding: .55rem .7rem; text-decoration: none; color: inherit; }
+.menu-item { display: flex; gap: .55rem; align-items: flex-start; background: var(--panel);
+  border: 1px solid var(--border); border-radius: .5rem; padding: .55rem .7rem; }
 .menu-item:hover { border-color: var(--accent); }
 .menu-item.active { border-color: var(--accent); background: var(--panel2); }
+.menu-item a { text-decoration: none; color: inherit; flex: 1; min-width: 0; }
+.menu-item .sim-check { margin-top: .25rem; width: 1rem; height: 1rem; accent-color: var(--up); cursor: pointer; }
 .menu-item .nm { font-weight: 650; }
 .menu-item .sub { display: block; color: var(--muted); font-size: .78rem; }
 .menu-item .dot { color: var(--up); font-size: .8rem; float: right; }
