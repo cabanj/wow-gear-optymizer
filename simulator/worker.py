@@ -1,21 +1,32 @@
 """Simulator worker: runs inside the simulationcraftorg/simc container.
 
 Polls the simulation_runs table for pending jobs, writes simc input to /work,
-runs simc, parses json2, stores results. Uses psycopg2 (sync — fine here).
+runs simc, parses json2, stores results into Postgres via psycopg2-binary
+(installed at container start — the simc image lacks pg drivers).
 """
 import json
 import os
 import subprocess
+import sys
 import time
-import uuid
 
-import psycopg2
-import psycopg2.extras
-
+SIMC = os.environ.get("SIMC_PATH", "/app/SimulationCraft/simc")
+WORK = os.environ.get("SIM_WORK", "/work")
+POLL_SECONDS = int(os.environ.get("POLL_SECONDS", "10"))
 DB_URL = os.environ.get("DATABASE_URL", "postgresql://wow:wow@postgres:5432/wow")
-SIMC = os.environ.get("SIMC_PATH", "/usr/local/bin/simc")
-WORK = "/work"
-POLL_SECONDS = 10
+TIMEOUT = int(os.environ.get("SIM_TIMEOUT_SECONDS", "3600"))
+
+try:
+    import psycopg2
+    import psycopg2.extras
+except ImportError:
+    subprocess.run([sys.executable, "-m", "pip", "install", "--quiet",
+                    "psycopg2-binary"], check=False)
+    try:
+        import psycopg2
+        import psycopg2.extras
+    except ImportError:
+        raise SystemExit("psycopg2 unavailable; cannot run worker")
 
 
 def get_conn():
@@ -33,75 +44,113 @@ def claim_run(conn):
             )
             RETURNING id, profile, simulation_config
         """)
-        return cur.fetchone()
+        row = cur.fetchone()
+        return dict(row) if row else None
 
 
-def detect_simc_version():
-    out = subprocess.run([SIMC, "--version"], capture_output=True, text=True, timeout=60)
-    return out.stdout.strip() or out.stderr.strip()
+def detect_simc_version() -> dict:
+    """SimC prints version banner on any invocation; grab from a no-op run."""
+    proc = subprocess.run([SIMC], input="", capture_output=True, text=True, timeout=60)
+    import re
+    m = re.search(r"SimulationCraft (\S+) for World of Warcraft (\S+)", proc.stdout + proc.stderr)
+    g = re.search(r"git build (\S+) (\w+)", proc.stdout + proc.stderr)
+    return {
+        "simc_version": m.group(1) if m else "unknown",
+        "wow_build": m.group(2) if m else "unknown",
+        "git_branch": g.group(1) if g else None,
+        "simc_commit": g.group(2) if g else None,
+    }
 
 
 def run_simc(run_id: str, profile: str) -> str:
     os.makedirs(WORK, exist_ok=True)
-    input_path = f"{WORK}/{run_id}.simc"
-    output_path = f"{WORK}/{run_id}.json"
+    input_path = os.path.join(WORK, f"{run_id}.simc")
+    output_path = os.path.join(WORK, f"{run_id}.json")
     with open(input_path, "w") as f:
         f.write(profile)
         f.write(f"\njson2={output_path}\n")
     proc = subprocess.run([SIMC, input_path], capture_output=True, text=True,
-                          timeout=int(os.environ.get("SIM_TIMEOUT_SECONDS", "3600")))
+                          timeout=TIMEOUT)
     if proc.returncode != 0:
         raise RuntimeError(f"simc exit {proc.returncode}: {proc.stderr[-2000:]}")
     with open(output_path) as f:
         return f.read()
 
 
-def store_results(conn, run_id, version_info, json2_text):
+def store_results(conn, run_id: str, json2_text: str) -> None:
     data = json.loads(json2_text)
-    from_profile = version_info
+    ver = extract_version(data)
+    sim = data.get("sim", {})
+
     with conn.cursor() as cur:
         cur.execute("""
             UPDATE simulation_runs
-            SET simc_version=%s, wow_build=%s, status='completed', finished_at=now()
+            SET simc_version=%s, simc_commit=%s, wow_build=%s,
+                status='completed', finished_at=now()
             WHERE id=%s
-        """, (version_info.get("simc_version"), version_info.get("wow_build"), run_id))
-        for player in data.get("sim", {}).get("players", []):
+        """, (ver["simc_version"], ver.get("simc_commit"), ver.get("wow_build"), run_id))
+
+        # baseline player
+        for player in sim.get("players", []):
             cd = player.get("collected_data") or {}
             dps = cd.get("dps") or {}
             if not dps:
                 continue
-            name = player.get("name")
-            is_baseline = name == "Baseline"
-            ptype = "raid" if (name == "Baseline" or name.startswith("raid")) else "mplus"
             cur.execute("""
                 INSERT INTO simulation_results
                 (simulation_run_id, profileset_name, profile_type, mean, median,
                  min, max, stddev, iterations, confidence_interval, raw)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                VALUES (%s, NULL, 'raid', %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 run_id,
-                None if is_baseline else name,
-                ptype,
                 dps.get("mean", 0), dps.get("median", 0),
                 dps.get("min", 0), dps.get("max", 0), dps.get("std_dev", 0),
-                cd.get("iterations", 0),
+                dps.get("iterations", 0) or sim.get("options", {}).get("iterations", 0),
                 json.dumps({"error": dps.get("error")}),
                 json.dumps(player)[:100000],
             ))
 
+        # profilesets
+        for r in (sim.get("profilesets") or {}).get("results", []):
+            name = r.get("name", "")
+            ptype = "mplus" if name.startswith("mplus") else "raid"
+            cur.execute("""
+                INSERT INTO simulation_results
+                (simulation_run_id, profileset_name, profile_type, mean, median,
+                 min, max, stddev, iterations, confidence_interval, raw)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                run_id, name, ptype,
+                r.get("mean", 0), r.get("median", 0),
+                r.get("min", 0), r.get("max", 0), r.get("stddev", 0),
+                r.get("iterations", 0),
+                json.dumps({"mean_error": r.get("mean_error"),
+                            "mean_stddev": r.get("mean_stddev")}),
+                json.dumps(r)[:100000],
+            ))
 
-def fail_run(conn, run_id, error_msg):
+
+def extract_version(data: dict) -> dict:
+    return {
+        "simc_version": data.get("version"),
+        "wow_build": data.get("build_date"),
+        "simc_commit": data.get("git_revision"),
+    }
+
+
+def fail_run(conn, run_id: str, error_msg: str) -> None:
     with conn.cursor() as cur:
         cur.execute("""
             UPDATE simulation_runs SET status='failed', error=%s, finished_at=now()
             WHERE id=%s
-        """, (error_msg, run_id))
+        """, (error_msg[:4000], run_id))
 
 
 def main():
     conn = get_conn()
     conn.autocommit = False
-    print("simulator worker started; simc:", detect_simc_version(), flush=True)
+    ver = detect_simc_version()
+    print("simulator worker started; simc:", ver, flush=True)
     while True:
         run = claim_run(conn)
         conn.commit()
@@ -113,16 +162,17 @@ def main():
         try:
             json2_text = run_simc(run_id, run["profile"])
             conn2 = get_conn()
-            store_results(conn2, run_id, {}, json2_text)
+            store_results(conn2, run_id, json2_text)
             conn2.commit()
             conn2.close()
             print("completed", run_id, flush=True)
         except Exception as e:
             conn2 = get_conn()
-            fail_run(conn2, run_id, str(e)[:4000])
+            fail_run(conn2, run_id, str(e))
             conn2.commit()
             conn2.close()
-            print("failed", run_id, e, flush=True)
+            print("failed", run_id, str(e)[:300], flush=True)
+        # loop again with fresh connection
 
 
 if __name__ == "__main__":
