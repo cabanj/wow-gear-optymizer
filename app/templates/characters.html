@@ -50,7 +50,9 @@
         <span class="tip">
           <span class="tip-name q-{{ g.quality }}">{{ g.name }}</span>
           <span class="tip-row">Item Level {{ g.ilvl }} · {{ g.slot_label }}</span>
+          {% if g.weapon and g.weapon.kind %}<span class="tip-row">{{ g.weapon.kind }}</span>{% endif %}
           {% if g.weapon %}<span class="tip-row">{{ g.weapon.damage }} · {{ g.weapon.speed }} · {{ g.weapon.dps }}</span>{% endif %}
+          {% if g.armor %}<span class="tip-row">{{ g.armor }} Armor</span>{% endif %}
           {% for st in g.stats %}<span class="tip-row {% if st.sec %}tip-sec{% else %}tip-stat{% endif %}">{{ st.text }}</span>{% endfor %}
           {% for ef in g.effects %}<span class="tip-row tip-effect">{{ ef }}</span>{% endfor %}
           {% if g.enchant %}<span class="tip-row tip-ench">{{ g.enchant }}</span>{% endif %}
@@ -77,7 +79,9 @@
         <span class="tip">
           <span class="tip-name q-{{ g.quality }}">{{ g.name }}</span>
           <span class="tip-row">Item Level {{ g.ilvl }} · {{ g.slot_label }}</span>
+          {% if g.weapon and g.weapon.kind %}<span class="tip-row">{{ g.weapon.kind }}</span>{% endif %}
           {% if g.weapon %}<span class="tip-row">{{ g.weapon.damage }} · {{ g.weapon.speed }} · {{ g.weapon.dps }}</span>{% endif %}
+          {% if g.armor %}<span class="tip-row">{{ g.armor }} Armor</span>{% endif %}
           {% for st in g.stats %}<span class="tip-row {% if st.sec %}tip-sec{% else %}tip-stat{% endif %}">{{ st.text }}</span>{% endfor %}
           {% for ef in g.effects %}<span class="tip-row tip-effect">{{ ef }}</span>{% endfor %}
           {% if g.enchant %}<span class="tip-row tip-ench">{{ g.enchant }}</span>{% endif %}
