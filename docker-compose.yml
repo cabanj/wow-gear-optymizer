@@ -10,6 +10,8 @@ services:
     volumes:
       - reports:/data/reports
       - ./docs:/data/seed:ro        # season seed for TrackPolicy
+    ports:
+      - "127.0.0.1:8001:8000"       # host nginx/caddy proxies; 8000 taken by Honcho
     restart: unless-stopped
 
   postgres:
