@@ -1,0 +1,10 @@
+# Local-only files (never commit)
+PLAN.local.md
+*.local.md
+notes/
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+.env
+.env.local
