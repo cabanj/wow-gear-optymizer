@@ -43,7 +43,7 @@ async def run_full_simulation(
     mark_raid_encounters([e.id for e in content.raid_encounters])
 
     # 2. season seed
-    seed_path = s.report_path + "/season-seed.json"  # on VPS: mounted from repo docs/
+    seed_path = "/data/seed/season-seed-midnight-s2.json"  # mounted in compose
     import os
     if not os.path.exists(seed_path):
         seed_path = os.path.join("docs", "season-seed-midnight-s2.json")

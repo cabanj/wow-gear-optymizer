@@ -7,6 +7,7 @@ services:
         condition: service_healthy
     volumes:
       - reports:/data/reports
+      - ./docs:/data/seed:ro        # season seed for TrackPolicy
     restart: unless-stopped
 
   postgres:
