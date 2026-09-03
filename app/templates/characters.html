@@ -21,6 +21,18 @@
       <div class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }} {{ c.active_spec_name or '' }}</div>
       <div class="meta">snapshot: {{ c.snapshot_time or '—' }}</div>
     </label>
+    {% if gear[c.id|string] %}
+    <div class="gear-grid">
+      {% for g in gear[c.id|string] %}
+      <a class="gear-item" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
+        {% if g.icon %}<img src="{{ g.icon }}" alt="" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
+        <span class="gear-ilvl">{{ g.ilvl }}</span>
+        <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
+        <span class="gear-slot">{{ g.slot_label }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
     {% endfor %}
   </div>
   {% if characters %}<p><button class="btn" type="submit">Save selection</button></p>{% endif %}

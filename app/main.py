@@ -151,7 +151,15 @@ async def characters_page(request: Request, user: User | None = Depends(get_curr
         snap_times[str(c.id)] = s.timestamp.strftime("%Y-%m-%d %H:%M") if s else None
     for c in chars:
         c.snapshot_time = snap_times.get(str(c.id))
-    return templates.TemplateResponse(request, "characters.html", {"user": user, "characters": chars})
+    from .reports.pages import character_gear
+    gear = {}
+    for c in chars:
+        try:
+            gear[str(c.id)] = await character_gear(db, c.id)
+        except Exception:
+            gear[str(c.id)] = []
+    return templates.TemplateResponse(request, "characters.html",
+                                       {"user": user, "characters": chars, "gear": gear})
 
 
 @app.get("/reports", response_class=HTMLResponse)

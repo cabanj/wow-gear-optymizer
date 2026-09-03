@@ -7,8 +7,51 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..blizzard.client import BlizzardClient
 from ..db.models import BlizzardAccount, Character, CharacterSnapshot, SimulationResult, SimulationRun
-from ..loot.discovery import item_metadata
+from ..loot.discovery import item_icon, item_metadata
 from .service import build_report_data
+
+GEAR_ORDER = ["HEAD", "NECK", "SHOULDER", "BACK", "CHEST", "WRIST", "HANDS",
+              "WAIST", "LEGS", "FEET", "FINGER_1", "FINGER_2",
+              "TRINKET_1", "TRINKET_2", "MAIN_HAND", "OFF_HAND"]
+
+
+async def character_gear(db: AsyncSession, character_id) -> list[dict]:
+    """Equipped items by slot for the character page.
+
+    Prefers the current snapshot; simc_addon_import snapshots carry no
+    equipment JSON, so fall back to the latest armory snapshot.
+    """
+    snaps = (await db.execute(select(CharacterSnapshot).where(
+        CharacterSnapshot.character_id == character_id
+    ).order_by(CharacterSnapshot.timestamp.desc()))).scalars().all()
+    equipment = None
+    for s in snaps:
+        eq = (s.raw or {}).get("equipment")
+        if eq and eq.get("equipped_items"):
+            equipment = eq
+            break
+    if not equipment:
+        return []
+    gear = []
+    for it in equipment.get("equipped_items", []):
+        slot = (it.get("slot") or {}).get("type", "")
+        item = it.get("item") or {}
+        item_id = item.get("id")
+        if not item_id or slot not in GEAR_ORDER:
+            continue
+        q = (it.get("quality") or {}).get("type", "").lower()
+        gear.append({
+            "slot": slot, "slot_label": SLOT_LABELS.get(slot.lower().replace("_1", "1").replace("_2", "2"), slot.title()),
+            "item_id": item_id,
+            "name": it.get("name") or item.get("name") or f"Item {item_id}",
+            "ilvl": (it.get("level") or {}).get("value") or "?",
+            "quality": {"epic": "epic", "rare": "rare", "uncommon": "uncommon",
+                        "legendary": "legendary", "artifact": "legendary",
+                        "heirloom": "rare"}.get(q, ""),
+            "icon": await item_icon(db, item_id),
+        })
+    gear.sort(key=lambda g: GEAR_ORDER.index(g["slot"]))
+    return gear
 
 CLASS_COLORS = {
     "Warrior": "#C79C6E", "Paladin": "#F58CBA", "Hunter": "#ABD473",

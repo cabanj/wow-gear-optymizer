@@ -76,6 +76,21 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 .rank-detail dt { color: var(--muted); }
 .boss-group { margin: 1rem 0 .3rem; color: var(--muted); font-size: .85rem; text-transform: uppercase;
   letter-spacing: .04em; }
+/* gear grid on characters page */
+.gear-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: .4rem; margin: .2rem 0 1rem; }
+.gear-item { display: grid; grid-template-columns: 2.4rem 1fr auto; gap: .15rem .6rem;
+  align-items: center; background: var(--panel); border: 1px solid var(--border);
+  border-radius: .45rem; padding: .35rem .5rem; text-decoration: none; color: inherit; }
+.gear-item:hover { border-color: var(--accent); }
+.gear-item img, .gear-item .noicon { width: 2.4rem; height: 2.4rem; border-radius: .3rem;
+  grid-row: span 2; }
+.gear-item .noicon { display: flex; align-items: center; justify-content: center;
+  background: var(--panel2); color: var(--muted); font-weight: 700; }
+.gear-item .gear-name { font-size: .85rem; font-weight: 600; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+.gear-item .gear-slot { font-size: .75rem; color: var(--muted); }
+.gear-item .gear-ilvl { grid-row: span 2; font-weight: 700; font-variant-numeric: tabular-nums; }
 /* forms */
 form.row { display: flex; gap: .5rem; flex-wrap: wrap; margin: .8rem 0; }
 input[type=text] { padding: .5rem .7rem; background: #0a0c10; color: var(--text);

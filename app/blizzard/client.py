@@ -110,6 +110,11 @@ class BlizzardClient:
             f"/data/wow/item/{item_id}", namespace=f"static-{self.region}"
         )
 
+    async def item_media(self, item_id: int) -> dict:
+        return await self.get_game_data(
+            f"/data/wow/media/item/{item_id}", namespace=f"static-{self.region}"
+        )
+
     async def mythic_keystone_seasons(self) -> dict:
         return await self.get_game_data("/data/wow/mythic-keystone/season/index")
 

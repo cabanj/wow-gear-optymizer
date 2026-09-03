@@ -123,3 +123,21 @@ async def item_metadata(db: AsyncSession, item_id: int) -> dict:
     data = await client.item(item_id)
     await set_cached(db, key, data, get_settings().cache_ttl_item)
     return data
+
+
+async def item_icon(db: AsyncSession, item_id: int) -> str | None:
+    """Icon URL for an item (Blizzard media API, cached)."""
+    key = cache_key(f"media/item/{item_id}", {})
+    cached = await get_cached(db, key)
+    data = cached
+    if data is None:
+        client = BlizzardClient()
+        try:
+            data = await client.item_media(item_id)
+        except Exception:
+            return None
+        await set_cached(db, key, data, get_settings().cache_ttl_item)
+    for asset in (data or {}).get("assets", []):
+        if asset.get("key") == "icon":
+            return asset.get("value")
+    return None
