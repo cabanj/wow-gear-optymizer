@@ -26,6 +26,7 @@
       <a href="/characters?character_id={{ c.id }}">
         <span class="nm" style="color:{{ c.class_color }}">{{ c.name }}</span>
         <span class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }}</span>
+        <span class="snap">{{ c.snapshot_time or 'no snapshot' }}</span>
       </a>
     </div>
     {% endfor %}
@@ -43,10 +44,17 @@
         <span class="pd-info">
           <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
           {% if g.enchant %}<span class="pd-sub">✦ {{ g.enchant }}</span>{% endif %}
-          {% for gm in g.gems %}<span class="pd-sub">◆ {{ gm }}</span>{% endfor %}
+          {% for s in g.sockets %}<span class="pd-sub {% if not s.filled %}empty-sock{% endif %}">{% if s.filled %}◆{% else %}○{% endif %} {{ s.text }}</span>{% endfor %}
         </span>
         <span class="gear-slotname">{{ g.slot_label }}</span>
         <span class="gear-ilvl">{{ g.ilvl }}</span>
+        <span class="tip">
+          <span class="tip-name q-{{ g.quality }}">{{ g.name }}</span>
+          <span class="tip-row">Item Level {{ g.ilvl }} · {{ g.slot_label }}</span>
+          {% if g.enchant %}<span class="tip-row tip-ench">{{ g.enchant }}</span>{% endif %}
+          {% for s in g.sockets %}<span class="tip-row {% if not s.filled %}empty-sock{% endif %}">{% if s.filled %}◆{% else %}○{% endif %} {{ s.text }}</span>{% endfor %}
+          <span class="tip-row tip-hint">Click for Wowhead ↗</span>
+        </span>
       </a>
       {% endfor %}
     </div>
@@ -60,10 +68,17 @@
         <span class="pd-info">
           <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
           {% if g.enchant %}<span class="pd-sub">✦ {{ g.enchant }}</span>{% endif %}
-          {% for gm in g.gems %}<span class="pd-sub">◆ {{ gm }}</span>{% endfor %}
+          {% for s in g.sockets %}<span class="pd-sub {% if not s.filled %}empty-sock{% endif %}">{% if s.filled %}◆{% else %}○{% endif %} {{ s.text }}</span>{% endfor %}
         </span>
         <span class="gear-slotname">{{ g.slot_label }}</span>
         <span class="gear-ilvl">{{ g.ilvl }}</span>
+        <span class="tip">
+          <span class="tip-name q-{{ g.quality }}">{{ g.name }}</span>
+          <span class="tip-row">Item Level {{ g.ilvl }} · {{ g.slot_label }}</span>
+          {% if g.enchant %}<span class="tip-row tip-ench">{{ g.enchant }}</span>{% endif %}
+          {% for s in g.sockets %}<span class="tip-row {% if not s.filled %}empty-sock{% endif %}">{% if s.filled %}◆{% else %}○{% endif %} {{ s.text }}</span>{% endfor %}
+          <span class="tip-row tip-hint">Click for Wowhead ↗</span>
+        </span>
       </a>
       {% endfor %}
     </div>

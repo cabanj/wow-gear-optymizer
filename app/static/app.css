@@ -125,6 +125,20 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 .menu-item .sim-check { margin-top: .25rem; width: 1rem; height: 1rem; accent-color: var(--up); cursor: pointer; }
 .menu-item .nm { font-weight: 650; }
 .menu-item .sub { display: block; color: var(--muted); font-size: .78rem; }
+.menu-item .snap { display: block; color: var(--muted); font-size: .72rem; opacity: .8; }
+/* armory-like tooltip */
+.gear-row { position: relative; }
+.gear-row .tip { display: none; position: absolute; left: 3rem; top: 100%; z-index: 20;
+  min-width: 16rem; max-width: 22rem; background: #0a0c12; border: 1px solid #4a5266;
+  border-radius: .4rem; padding: .6rem .75rem; box-shadow: 0 6px 24px rgba(0,0,0,.6);
+  pointer-events: none; }
+.gear-row:hover .tip { display: block; }
+.tip span { display: block; }
+.tip-name { font-weight: 700; font-size: .95rem; }
+.tip-row { font-size: .8rem; color: #cfd6e4; margin-top: .15rem; }
+.tip-ench { color: var(--uncommon); }
+.empty-sock { color: var(--warn); }
+.tip-hint { color: var(--muted); font-size: .72rem; margin-top: .3rem; }
 .menu-item .dot { color: var(--up); font-size: .8rem; float: right; }
 .char-detail h2 { margin-top: 0; }
 .char-detail h3 { margin: 1.2rem 0 .5rem; font-size: .95rem; color: var(--muted);

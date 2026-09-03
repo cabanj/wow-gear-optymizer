@@ -44,6 +44,15 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
         for g in it.get("gems", []) or []:
             gi = g.get("item") or {}
             gems.append(gi.get("name") or f"gem {gi.get('id', '?')}")
+        sockets = []
+        for s in it.get("sockets", []) or []:
+            gem = (s.get("item") or {}).get("name")
+            stype = (s.get("socket_type") or {}).get("name") or "Socket"
+            if gem:
+                sockets.append({"filled": True,
+                                "text": f"{gem} ({s.get('display_string', '')})".strip()})
+            else:
+                sockets.append({"filled": False, "text": f"Empty {stype}"})
         ench = ""
         for e in it.get("enchantments", []) or []:
             ench = e.get("display_string") or e.get("name") or ""
@@ -59,6 +68,7 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
                         "heirloom": "rare"}.get(q, ""),
             "icon": await item_icon(db, item_id),
             "gems": gems,
+            "sockets": sockets,
             "enchant": ench,
         })
     gear.sort(key=lambda g: GEAR_ORDER.index(g["slot"]))
