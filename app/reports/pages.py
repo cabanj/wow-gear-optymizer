@@ -40,6 +40,15 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
         if not item_id or slot not in GEAR_ORDER:
             continue
         q = (it.get("quality") or {}).get("type", "").lower()
+        gems = []
+        for g in it.get("gems", []) or []:
+            gi = g.get("item") or {}
+            gems.append(gi.get("name") or f"gem {gi.get('id', '?')}")
+        ench = ""
+        for e in it.get("enchantments", []) or []:
+            ench = e.get("display_string") or e.get("name") or ""
+            if ench:
+                break
         gear.append({
             "slot": slot, "slot_label": SLOT_LABELS.get(slot.lower().replace("_1", "1").replace("_2", "2"), slot.title()),
             "item_id": item_id,
@@ -49,6 +58,8 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
                         "legendary": "legendary", "artifact": "legendary",
                         "heirloom": "rare"}.get(q, ""),
             "icon": await item_icon(db, item_id),
+            "gems": gems,
+            "enchant": ench,
         })
     gear.sort(key=lambda g: GEAR_ORDER.index(g["slot"]))
     return gear

@@ -129,9 +129,9 @@ async def logout(request: Request):
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User | None = Depends(get_current_user),
                 db: AsyncSession = Depends(get_db)):
-    from .reports.pages import dashboard_cards
-    cards = await dashboard_cards(db, user.id) if user else []
-    return templates.TemplateResponse(request, "index.html", {"user": user, "cards": cards})
+    if user is not None:
+        return RedirectResponse("/characters")
+    return templates.TemplateResponse(request, "index.html", {"user": user, "cards": []})
 
 
 @app.get("/characters", response_class=HTMLResponse)
@@ -164,9 +164,14 @@ async def characters_page(request: Request, character_id: str | None = None,
             gear_list = await character_gear(db, current.id)
         except Exception:
             gear_list = []
+    left_slots = {"HEAD", "NECK", "SHOULDER", "BACK", "CHEST", "WRIST",
+                  "HANDS", "WAIST", "LEGS", "FEET"}
+    gear_left = [g for g in gear_list if g["slot"] in left_slots]
+    gear_right = [g for g in gear_list if g["slot"] not in left_slots]
     return templates.TemplateResponse(request, "characters.html",
                                        {"user": user, "characters": chars,
-                                        "current": current, "gear": gear_list,
+                                        "current": current, "gear_left": gear_left,
+                                        "gear_right": gear_right,
                                         "all_ids": [str(c.id) for c in chars]})
 
 

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Characters</h1>
+<h1>Characters <button class="btn ghost" id="menubtn" title="toggle character list">☰</button></h1>
 <h2>Add character manually</h2>
 <p class="meta">Useful when Blizzard's character list comes back empty. Needs realm + exact name.</p>
 <form class="row" id="add-form">
@@ -15,8 +15,8 @@
   <span class="meta" id="msg2"></span>
 </p>
 <h2>Characters</h2>
-<div class="char-layout">
-  <aside class="char-menu">
+<div class="char-layout" id="charlayout">
+  <aside class="char-menu" id="charmenu">
     {% for c in characters %}
     <a class="menu-item{% if current and c.id == current.id %} active{% endif %}"
        href="/characters?character_id={{ c.id }}">
@@ -29,28 +29,46 @@
   </aside>
   <section class="char-detail">
     {% if current %}
-    <h2><span style="color:{{ current.class_color }}">{{ current.name }}</span>
-      <span class="meta">{{ current.realm_slug }} · {{ current.class_name or '?' }} {{ current.active_spec_name or '' }}</span></h2>
-    <p class="meta">snapshot: {{ current.snapshot_time or '—' }}</p>
-    <form id="select-form">
-      <label class="pick"><input type="checkbox" id="sel-one" {% if current.selected %}checked{% endif %}>
-        Include in daily simulations</label>
-      <button class="btn" type="submit">Save</button>
-      <span class="meta" id="msg"></span>
-    </form>
-    {% if gear %}
-    <h3>Equipped gear</h3>
-    <div class="gear-grid">
-      {% for g in gear %}
-      <a class="gear-item" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
-        {% if g.icon %}<img src="{{ g.icon }}" alt="" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
-        <span class="gear-ilvl">{{ g.ilvl }}</span>
-        <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
-        <span class="gear-slot">{{ g.slot_label }}</span>
-      </a>
-      {% endfor %}
+    <div class="paperdoll">
+      <div class="pd-col">
+        {% for g in gear_left %}
+        <a class="gear-slot" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
+          {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.slot_label }}" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
+          <span class="pd-info">
+            <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
+            {% if g.enchant %}<span class="pd-sub">{{ g.enchant }}</span>{% endif %}
+            {% for gm in g.gems %}<span class="pd-sub">◆ {{ gm }}</span>{% endfor %}
+          </span>
+          <span class="gear-ilvl">{{ g.ilvl }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      <div class="pd-hero">
+        <div class="nm" style="color:{{ current.class_color }}">{{ current.name }}</div>
+        <div class="sub">{{ current.realm_slug }} · {{ current.class_name or '?' }} {{ current.active_spec_name or '' }}</div>
+        <div class="meta">snapshot: {{ current.snapshot_time or '—' }}</div>
+        <form id="select-form">
+          <label class="pick"><input type="checkbox" id="sel-one" {% if current.selected %}checked{% endif %}>
+            Simulate</label>
+          <button class="btn" type="submit">Save</button>
+          <span class="meta" id="msg"></span>
+        </form>
+      </div>
+      <div class="pd-col">
+        {% for g in gear_right %}
+        <a class="gear-slot" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
+          {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.slot_label }}" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
+          <span class="pd-info">
+            <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
+            {% if g.enchant %}<span class="pd-sub">{{ g.enchant }}</span>{% endif %}
+            {% for gm in g.gems %}<span class="pd-sub">◆ {{ gm }}</span>{% endfor %}
+          </span>
+          <span class="gear-ilvl">{{ g.ilvl }}</span>
+        </a>
+        {% endfor %}
+      </div>
     </div>
-    {% else %}
+    {% if not gear_left and not gear_right %}
     <div class="empty"><p>No gear snapshot for this character yet.</p></div>
     {% endif %}
     {% else %}
@@ -59,7 +77,9 @@
   </section>
 </div>
 <script>
-const allIds = {{ all_ids|tojson }};
+document.getElementById('menubtn').onclick = () => {
+  document.getElementById('charlayout').classList.toggle('menu-hidden');
+};
 document.getElementById('refresh').onclick = async () => {
   const m = document.getElementById('msg2');
   m.textContent = 'Refreshing…';
@@ -67,7 +87,8 @@ document.getElementById('refresh').onclick = async () => {
   m.textContent = r.ok ? 'Done — reloading…' : 'Refresh failed (' + r.status + ')';
   if (r.ok) setTimeout(() => location.reload(), 800);
 };
-document.getElementById('select-form').onsubmit = async (e) => {
+const selForm = document.getElementById('select-form');
+if (selForm) selForm.onsubmit = async (e) => {
   e.preventDefault();
   const one = document.getElementById('sel-one');
   const cur = await (await fetch('/api/characters')).json();
