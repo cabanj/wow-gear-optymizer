@@ -33,11 +33,8 @@
   </aside>
   <section class="char-detail">
     {% if current %}
-    <div class="pd-hero">
-      <div class="nm" style="color:{{ current.class_color }}">{{ current.name }}</div>
-      <div class="sub">{{ current.realm_slug }} · {{ current.class_name or '?' }} {{ current.active_spec_name or '' }}</div>
-      <div class="meta">snapshot: {{ current.snapshot_time or '—' }}</div>
-    </div>
+    {% if gear_left or gear_right %}
+    <div class="meta">snapshot: {{ current.snapshot_time or '—' }}</div>
     {% if gear_left %}
     <h3>Armor</h3>
     <div class="gear-list">
