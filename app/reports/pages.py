@@ -138,7 +138,7 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
                 "speed": (w.get("attack_speed") or {}).get("display_string", ""),
                 "kind": ((it.get("item_subclass") or {}).get("name") or ""),
             }
-        armor = (it.get("armor") or {}).get("display_string", "")
+        armor = ((it.get("armor") or {}).get("display") or {}).get("display_string", "")
         gems = []
         for g in it.get("gems", []) or []:
             gi = g.get("item") or {}
