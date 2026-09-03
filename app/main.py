@@ -22,7 +22,11 @@ async def lifespan(app: FastAPI):
     engine = make_engine()
     app.state.engine = engine
     app.state.SessionLocal = make_sessionmaker(engine)
+    scheduler = create_scheduler(engine)
+    scheduler.start()
+    app.state.scheduler = scheduler
     yield
+    scheduler.shutdown(wait=False)
     await engine.dispose()
 
 

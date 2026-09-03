@@ -14,12 +14,12 @@ from ..db.models import BlizzardAccount, Character, CharacterSnapshot, Report
 log = logging.getLogger("scheduler")
 
 
-def create_scheduler(engine) -> AsyncScheduler:
+def create_scheduler(engine) -> AsyncIOScheduler:
     s = get_settings()
-    sched = AsyncScheduler()
+    sched = AsyncIOScheduler()
     hour, minute = s.cron_report.split()[1], s.cron_report.split()[0]
     sched.add_job(
-        daily_reports,
+        daily_report,
         CronTrigger(hour=int(hour), minute=int(minute),
                     timezone=ZoneInfo(s.cron_tz)),  # DST handled by zoneinfo
         args=[engine],
