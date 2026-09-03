@@ -1,17 +1,26 @@
-<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WoW Gear Upgrade Analyzer</title>
-<link rel="stylesheet" href="/static/app.css"></head>
-<body>
-<main>
-  <h1>WoW Gear Upgrade Analyzer</h1>
-  {% if user %}
-    <p>Logged in as <strong>{{ user.battletag }}</strong></p>
-    <a href="/characters">Characters</a> · <a href="/reports">Reports</a>
-  {% else %}
-    <p><a href="/auth/blizzard" class="btn">Login with Battle.net</a></p>
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+{% if user %}
+  {% if not cards %}
+  <div class="empty"><p>No characters yet. Go to <a href="/characters">Characters</a> to add some.</p></div>
   {% endif %}
-</main>
-</body>
-</html>
+  <div class="cards">
+  {% for c in cards %}
+    <a class="char-card" href="/reports?character_id={{ c.id }}">
+      <div class="nm" style="color:{{ c.class_color }}">{{ c.name }}</div>
+      <div class="sub">{{ c.realm }} · {{ c.spec }} · ilvl {{ c.item_level or '?' }}</div>
+      {% if c.best %}
+      <div>Best: <span class="up">+{{ "%.2f"|format(c.best.delta_percent) }}%</span>
+        <span class="meta">{{ c.best.name }} (+{{ c.best.delta }})</span></div>
+      {% else %}
+      <div class="meta">No completed sim yet</div>
+      {% endif %}
+      <div class="meta">snapshot: {{ c.snapshot_time or '—' }}</div>
+    </a>
+  {% endfor %}
+  </div>
+{% else %}
+  <div class="empty"><p><a class="btn" href="/auth/blizzard">Login with Battle.net</a></p></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}WoW Gear Upgrade Analyzer{% endblock %}</title>
+<link rel="stylesheet" href="/static/app.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<nav class="top">
+  <a class="logo" href="/">Gear Upgrade Analyzer</a>
+  <a href="/characters">Characters</a>
+  <a href="/reports">Reports</a>
+  <span class="spacer"></span>
+  {% if user %}<span class="who">{{ user.battletag }}</span>{% endif %}
+</nav>
+<main>{% block content %}{% endblock %}</main>
+</body>
+</html>

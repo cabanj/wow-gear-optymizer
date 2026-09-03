@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Reports{% if character %} — {{ character.name }}{% endif %}</h1>
+{% if not runs %}
+<div class="empty"><p>No completed simulations yet.</p></div>
+{% endif %}
+<div class="cards">
+{% for r in runs %}
+  <a class="char-card" href="/reports/{{ r.id }}">
+    <div class="nm">{{ r.character_name }}</div>
+    <div class="sub">{{ r.profile_type }} · {{ r.created_at }}</div>
+    <div>Baseline <span class="big">{{ r.baseline }}</span> DPS</div>
+    {% if r.best %}<div>Best: <span class="up">+{{ r.best.pct }}%</span>
+      <span class="meta">{{ r.best.name }} (+{{ r.best.dps }})</span></div>{% endif %}
+    <div class="meta">SimC {{ r.simc_version or '?' }} · {{ r.content_version or '' }}</div>
+  </a>
+{% endfor %}
+</div>
+{% endblock %}

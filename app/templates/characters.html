@@ -1,43 +1,67 @@
-<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Characters — WoW Gear Upgrade Analyzer</title>
-<link rel="stylesheet" href="/static/app.css"></head>
-<body>
-<main>
-  <h1>Characters</h1>
-  <button id="refresh">Refresh from Blizzard</button>
-  <form id="select-form">
-    <ul id="char-list">
-      {% for c in characters %}
-      <li>
-        <label>
-          <input type="checkbox" value="{{ c.id }}" {% if c.selected %}checked{% endif %}>
-          {{ c.name }} — {{ c.realm_slug }} — {{ c.class_name or '?' }}
-          {{ c.active_spec_name or '' }} — ilvl {{ c.level }}
-        </label>
-      </li>
-      {% endfor %}
-    </ul>
-    <button type="submit">Save selection</button>
-  </form>
-  <p id="msg"></p>
-</main>
+{% extends "base.html" %}
+{% block content %}
+<h1>Characters</h1>
+{% if not characters %}
+<div class="empty">
+  <p>No characters yet.</p>
+  <p>Click <strong>Refresh from Blizzard</strong> to pull your account characters,
+     or add one manually below.</p>
+</div>
+{% endif %}
+<p>
+  <button class="btn ghost" id="refresh">Refresh from Blizzard</button>
+  <span class="meta" id="msg"></span>
+</p>
+<form id="select-form">
+  <div class="cards">
+    {% for c in characters %}
+    <label class="char-card pick">
+      <span class="pick"><input type="checkbox" value="{{ c.id }}" {% if c.selected %}checked{% endif %}>
+      <span class="nm">{{ c.name }}</span></span>
+      <div class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }} {{ c.active_spec_name or '' }}</div>
+      <div class="meta">snapshot: {{ c.snapshot_time or '—' }}</div>
+    </label>
+    {% endfor %}
+  </div>
+  {% if characters %}<p><button class="btn" type="submit">Save selection</button></p>{% endif %}
+</form>
+<h2>Add character manually</h2>
+<p class="meta">Useful when Blizzard's character list comes back empty. Needs realm + exact name.</p>
+<form class="row" id="add-form">
+  <input type="text" id="add-realm" placeholder="realm slug, e.g. shadowsong" required>
+  <input type="text" id="add-name" placeholder="character name" required>
+  <button class="btn" type="submit">Add + snapshot</button>
+  <span class="meta" id="add-msg"></span>
+</form>
 <script>
 document.getElementById('refresh').onclick = async () => {
+  const m = document.getElementById('msg');
+  m.textContent = 'Refreshing…';
   const r = await fetch('/api/characters/refresh', {method: 'POST'});
-  document.getElementById('msg').textContent = r.ok ? 'Refreshed. Reloading…' : 'Refresh failed';
+  m.textContent = r.ok ? 'Done — reloading…' : 'Refresh failed (' + r.status + ')';
   if (r.ok) setTimeout(() => location.reload(), 800);
 };
 document.getElementById('select-form').onsubmit = async (e) => {
   e.preventDefault();
-  const ids = [...document.querySelectorAll('#char-list input:checked')].map(i => i.value);
+  const ids = [...document.querySelectorAll('.char-card input:checked')].map(i => i.value);
   const r = await fetch('/api/characters/select', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({character_ids: ids})
   });
-  document.getElementById('msg').textContent = r.ok ? 'Saved' : 'Save failed';
+  document.getElementById('msg').textContent = r.ok ? 'Saved ✓' : 'Save failed';
+};
+document.getElementById('add-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const m = document.getElementById('add-msg');
+  m.textContent = 'Adding…';
+  const r = await fetch('/api/characters/add', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({realm: document.getElementById('add-realm').value,
+                          name: document.getElementById('add-name').value})
+  });
+  const j = await r.json();
+  m.textContent = r.ok ? 'Added, ilvl ' + (j.item_level ?? '?') + ' — reloading…' : 'Failed: ' + (j.detail ?? r.status);
+  if (r.ok) setTimeout(() => location.reload(), 800);
 };
 </script>
-</body>
-</html>
+{% endblock %}

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +34,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="WoW Gear Upgrade Analyzer", lifespan=lifespan)
 app.add_middleware(SessionMiddleware, secret_key=get_settings().secret_key)
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 async def get_db(request: Request) -> AsyncSession:
@@ -125,8 +127,11 @@ async def logout(request: Request):
 
 # ---------------- pages ----------------
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User | None = Depends(get_current_user)):
-    return templates.TemplateResponse(request, "index.html", {"user": user})
+async def index(request: Request, user: User | None = Depends(get_current_user),
+                db: AsyncSession = Depends(get_db)):
+    from .reports.pages import dashboard_cards
+    cards = await dashboard_cards(db, user.id) if user else []
+    return templates.TemplateResponse(request, "index.html", {"user": user, "cards": cards})
 
 
 @app.get("/characters", response_class=HTMLResponse)
@@ -137,7 +142,54 @@ async def characters_page(request: Request, user: User | None = Depends(get_curr
     chars = (await db.execute(
         select(Character).join(BlizzardAccount).where(BlizzardAccount.user_id == user.id)
     )).scalars().all()
+    snap_times = {}
+    for c in chars:
+        s = (await db.execute(
+            select(CharacterSnapshot).where(CharacterSnapshot.character_id == c.id,
+                                            CharacterSnapshot.is_current.is_(True))
+        )).scalars().first()
+        snap_times[str(c.id)] = s.timestamp.strftime("%Y-%m-%d %H:%M") if s else None
+    for c in chars:
+        c.snapshot_time = snap_times.get(str(c.id))
     return templates.TemplateResponse(request, "characters.html", {"user": user, "characters": chars})
+
+
+@app.get("/reports", response_class=HTMLResponse)
+async def reports_page(request: Request, character_id: str | None = None,
+                       user: User | None = Depends(get_current_user),
+                       db: AsyncSession = Depends(get_db)):
+    if user is None:
+        return RedirectResponse("/")
+    from .reports.pages import list_runs
+    runs = await list_runs(db, user.id, character_id)
+    char = None
+    if character_id:
+        char = (await db.execute(
+            select(Character).where(Character.id == character_id))).scalar_one_or_none()
+    return templates.TemplateResponse(request, "reports.html",
+                                       {"user": user, "runs": runs, "character": char})
+
+
+@app.get("/reports/{run_id}", response_class=HTMLResponse)
+async def report_detail_page(request: Request, run_id: str,
+                             user: User | None = Depends(get_current_user),
+                             db: AsyncSession = Depends(get_db)):
+    if user is None:
+        return RedirectResponse("/")
+    from .reports.pages import history, run_report
+    from uuid import UUID
+    try:
+        rep = await run_report(db, UUID(run_id))
+    except Exception:
+        raise HTTPException(404, "report not found")
+    # history for the character of this run
+    from .db.models import SimulationRun as _SR
+    run = (await db.execute(select(_SR).where(_SR.id == UUID(run_id)))).scalar_one()
+    labels, values = await history(db, run.character_id)
+    return templates.TemplateResponse(request, "report_detail.html",
+                                       {"user": user, **rep,
+                                        "hist_labels": labels, "hist_values": values,
+                                        "warning": None})
 
 
 # ---------------- api ----------------
@@ -332,6 +384,29 @@ async def api_report(report_id: str,
         from .reports.service import build_report_data
         data["mplus"] = await build_report_data(db, rep.simulation_run_mplus)
     return data
+
+
+@app.post("/api/characters/add")
+async def api_add_character(request: Request,
+                            user: User | None = Depends(get_current_user),
+                            db: AsyncSession = Depends(get_db)):
+    """Manual add by realm+name (fallback when /profile/user/wow is empty)."""
+    if user is None:
+        raise HTTPException(401, "not logged in")
+    body = await request.json()
+    realm, name = body.get("realm", ""), body.get("name", "")
+    if not realm or not name:
+        raise HTTPException(400, "realm and name required")
+    account = (await db.execute(
+        select(BlizzardAccount).where(BlizzardAccount.user_id == user.id)
+    )).scalars().first()
+    if account is None:
+        raise HTTPException(400, "no blizzard account linked")
+    from .reports.pages import add_character_manual
+    try:
+        return await add_character_manual(db, account, realm, name)
+    except Exception as e:
+        raise HTTPException(400, f"character not found or not visible: {str(e)[:200]}")
 
 
 @app.get("/api/health")

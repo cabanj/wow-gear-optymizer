@@ -88,10 +88,21 @@ async def run_full_simulation(
     }
     profile = build_profileset_input(snapshot.raw, builder_cands, profile_type, sim_config)
 
-    # 6. create run
+    # 6. create run (persist candidate metadata for the report pages)
     run = SimulationRun(
         character_id=character.id, snapshot_id=snapshot.id,
-        simulation_config=sim_config, profile=profile, status="pending",
+        simulation_config={**sim_config, "profile_type": profile_type,
+                           "candidates": [
+                               {"profileset": f"{c.source}_{c.item_id}_{c.slot}",
+                                "item_id": c.item_id, "name": c.name, "slot": c.slot,
+                                "item_level": c.item_level,
+                                "bonus_ids": c.bonus_ids, "source": c.source,
+                                "difficulty": c.difficulty, "variant": c.variant,
+                                "boss_or_dungeon": c.boss_or_dungeon,
+                                "inventory_type": c.inventory_type}
+                               for c in candidates
+                           ]},
+        profile=profile, status="pending",
         content_version=f"raid:{content.raid_instance_id};season:{content.mplus_season_id}",
     )
     db.add(run)

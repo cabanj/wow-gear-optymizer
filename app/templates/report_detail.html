@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ character.name }} <span class="meta">{{ character.realm }} · {{ character.spec }} · ilvl {{ character.item_level or '?' }}</span></h1>
+<p class="meta">Snapshot: {{ snapshot_time }} ({{ snapshot_source }}) ·
+SimC {{ simc_version or '?' }} · WoW {{ wow_build or '?' }} · {{ content_version or '' }}</p>
+{% if warning %}<p class="warn">⚠ {{ warning }}</p>{% endif %}
+
+<div class="summary">
+  <div class="card"><div class="k">Current DPS</div><div class="v">{{ baseline_fmt }}</div></div>
+  {% if best %}<div class="card"><div class="k">Best upgrade</div>
+    <div class="v up">#1 +{{ best.pct }}% <span class="meta">(+{{ best.dps }})</span></div>
+    <div class="k">{{ best.name }}</div></div>{% endif %}
+</div>
+
+<div class="tabs" id="srctabs">
+  <button class="on" data-f="all">All</button>
+  <button data-f="raid">Raid</button>
+  <button data-f="mplus">Mythic+</button>
+  <button id="groupbtn" title="toggle">Group by boss: off</button>
+</div>
+<div class="chips" id="slotchips">
+  <button class="on" data-s="all">All slots</button>
+  {% for s in slots %}<button data-s="{{ s }}">{{ s }}</button>{% endfor %}
+</div>
+
+<div id="ranking">
+{% for r in rows %}
+{% if r.group %}<div class="boss-group" data-src="{{ r.source }}">{{ r.group }}</div>{% endif %}
+<div class="rank-row{% if r.rank == 1 %} rank-1{% endif %}" data-src="{{ r.source }}" data-slot="{{ r.slot }}">
+  <div class="rank-main">
+    <div class="rank-pos">#{{ r.rank }}</div>
+    <div>
+      <div class="rank-name q-{{ r.quality }}">{{ r.item_name }}</div>
+      <div class="rank-sub">{{ r.slot_label }} · {{ r.boss }} · ilvl {{ r.ilvl }} · replaces {{ r.replaces }}</div>
+      <div class="bar"><i style="width:{{ r.bar_pct }}%"></i></div>
+    </div>
+    <div class="rank-delta">
+      <div class="d up">+{{ r.delta_fmt }}</div>
+      <div class="up">+{{ r.pct_fmt }}%{% if r.within_error %} <span class="warn" title="within 2 stddev">±</span>{% endif %}</div>
+      <div class="meta">{{ r.dps_fmt }}</div>
+    </div>
+  </div>
+  <div class="rank-detail">
+    <dl>
+      <dt>Source</dt><dd>{{ r.source_label }} — {{ r.boss }}</dd>
+      <dt>Item level</dt><dd>{{ r.ilvl }} (Myth track)</dd>
+      <dt>Bonus IDs</dt><dd><code>{{ r.bonus_ids }}</code></dd>
+      <dt>Stats</dt><dd>{{ r.stats or '—' }}</dd>
+      <dt>DPS</dt><dd>{{ r.dps_fmt }} (mean), median {{ r.median_fmt }}, ±{{ r.std_fmt }} over {{ r.iterations }} iterations</dd>
+      <dt>Links</dt><dd><a href="https://www.wowhead.com/item={{ r.item_id }}" target="_blank" rel="noopener">Wowhead ↗</a></dd>
+    </dl>
+  </div>
+</div>
+{% endfor %}
+</div>
+
+<h2>Baseline DPS over time</h2>
+<canvas id="hist" height="120"></canvas>
+<p class="meta">Results are simulation estimates. Small differences may be within simulation error.</p>
+
+<script>
+const rows = [...document.querySelectorAll('.rank-row')];
+const groups = [...document.querySelectorAll('.boss-group')];
+let src = 'all', slot = 'all', grouped = false;
+document.querySelectorAll('#srctabs button[data-f]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#srctabs button[data-f]').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); src = b.dataset.f; apply();
+});
+document.querySelectorAll('#slotchips button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#slotchips button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); slot = b.dataset.s; apply();
+});
+document.getElementById('groupbtn').onclick = (e) => {
+  grouped = !grouped;
+  e.target.textContent = 'Group by boss: ' + (grouped ? 'on' : 'off');
+  apply();
+};
+function apply() {
+  rows.forEach(tr => {
+    const okS = src === 'all' || tr.dataset.src === src;
+    const okSl = slot === 'all' || tr.dataset.slot === slot;
+    tr.style.display = (okS && okSl) ? '' : 'none';
+  });
+  groups.forEach(g => {
+    g.style.display = (!grouped || (src !== 'all' && g.dataset.src !== src)) ? 'none' : '';
+  });
+  if (!grouped) groups.forEach(g => g.style.display = 'none');
+}
+apply();
+rows.forEach(tr => tr.querySelector('.rank-main').onclick = () => tr.classList.toggle('open'));
+new Chart(document.getElementById('hist'), {
+  type: 'line',
+  data: { labels: {{ hist_labels|tojson }}, datasets: [{ label: 'Baseline DPS', data: {{ hist_values|tojson }}, borderColor: '#2f5fbe', tension: .2 }] },
+  options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#9aa3b2' } }, x: { ticks: { color: '#9aa3b2' } } } }
+});
+</script>
+{% endblock %}
