@@ -57,11 +57,23 @@ async def auth_blizzard(request: Request):
 
 
 @app.get("/auth/blizzard/callback")
-async def auth_callback(request: Request, code: str, state: str,
-                        db: AsyncSession = Depends(get_db)):
+async def auth_callback(request: Request, db: AsyncSession = Depends(get_db),
+                        code: str | None = None, state: str | None = None,
+                        error: str | None = None,
+                        error_description: str | None = None):
+    if error or not code or not state:
+        detail = error or "missing_code_or_state"
+        desc = error_description or (
+            "Blizzard did not return an authorization code. "
+            "Most often the redirect URI is not whitelisted exactly, "
+            "or access was denied on the consent screen."
+        )
+        return HTMLResponse(
+            f"<h1>Blizzard login failed: {detail}</h1><p>{desc}</p>"
+            f"<p><a href='/'>Back</a></p>", status_code=400)
     expected = request.session.pop("oauth_state", None)
     if not expected or expected != state:
-        raise HTTPException(400, "OAuth state mismatch")
+        raise HTTPException(400, "OAuth state mismatch (session lost or reused link)")
     oauth = BlizzardOAuth()
     tokens = await oauth.exchange_code(code)
     tokens["expires_at"] = __import__("time").time() + tokens.get("expires_in", 0)
