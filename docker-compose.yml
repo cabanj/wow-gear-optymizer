@@ -45,17 +45,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  proxy:
-    image: caddy:2-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddydata:/data
-    depends_on: [web]
-    restart: unless-stopped
-
 volumes:
   pgdata:
   reports:
