@@ -73,28 +73,25 @@ def build_profileset_input(
 ) -> str:
     """Full simc input: baseline + profileset per candidate."""
     cfg_raid = profile_type == "raid"
-    lines = [build_baseline(snapshot_raw), ""]
-    lines += [
+    # Sim options must come BEFORE the player block; gear lines must come
+    # after the player declaration (which the baseline text guarantees).
+    lines = [
         f"threads={sim_config.get('threads', 8)}",
         f"iterations={sim_config['iterations']}",
         f"target_error={sim_config['target_error']}",
         f"fight_style={sim_config['fight_style']}",
-        f"duration={sim_config['duration']}",
+        f"max_time={sim_config['duration']}",
         "profileset_metric=dps",
         f"profileset_work_threads={sim_config.get('profileset_work_threads', 2)}",
         "",
     ]
+    lines.append(build_baseline(snapshot_raw))
+    lines.append("")
     for c in candidates:
         name = f"{c.source}_{c.item_id}_{c.slot}"
         if c.replace_slot and c.replace_slot != c.slot:
             name += f"_replaces_{c.replace_slot}"
         lines.append(f'profileset."{name}"={_item_line(c)}')
-        # replacing a trinket: drop the worn one in that slot
-        if c.replace_slot and c.replace_slot != c.slot:
-            lines.append(f'profileset."{name}"+=# removes worn item in {c.replace_slot}')
-            # simc: specifying the slot with a new item replaces it; explicit removal
-            # handled by the item line above binding to the replaced slot
-            lines[-1] = f'profileset."{name}"={_item_line(c)}'
         lines.append("")
     return "\n".join(lines)
 
