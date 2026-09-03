@@ -1,7 +1,6 @@
 """View helpers for dashboard / reports pages (enriched, display-ready dicts)."""
 import re
 from datetime import datetime
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,6 +65,15 @@ async def _simc_gear_stats(db: AsyncSession, character_id) -> dict[str, list[str
             for k, v in gear.items() if k in SIMC_SLOT and isinstance(v, dict)}
 
 
+def _clean_enchant(text: str) -> str:
+    """'Enchanted: Enchant Ring - X |A:...|a' -> 'Enchant Ring - X'."""
+    if not text:
+        return ""
+    text = re.sub(r"\|A:[^|]*\|a", "", text).strip()
+    text = re.sub(r"^Enchanted:\s*", "", text)
+    return text
+
+
 async def character_gear(db: AsyncSession, character_id) -> list[dict]:
     """Equipped items by slot for the character page.
 
@@ -110,6 +118,11 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             ench = e.get("display_string") or e.get("name") or ""
             if ench:
                 break
+        ench = _clean_enchant(ench)
+        armory_stats = [s.get("display", {}).get("display_string", "")
+                        for s in it.get("stats", []) or []
+                        if s.get("display", {}).get("display_string")
+                        and not s.get("is_negated")]
         gear.append({
             "slot": slot, "slot_label": SLOT_LABELS.get(slot.lower().replace("_1", "1").replace("_2", "2"), slot.title()),
             "item_id": item_id,
@@ -122,7 +135,7 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             "gems": gems,
             "sockets": sockets,
             "enchant": ench,
-            "stats": stats_by_slot.get(slot, []),
+            "stats": armory_stats or stats_by_slot.get(slot, []),
         })
     gear.sort(key=lambda g: GEAR_ORDER.index(g["slot"]))
     return gear

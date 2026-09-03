@@ -94,6 +94,14 @@
   </section>
 </div>
 <script>
+document.querySelectorAll('.gear-row').forEach(row => {
+  row.addEventListener('mouseenter', () => {
+    const r = row.getBoundingClientRect();
+    row.classList.toggle('tip-above', r.bottom + 260 > window.innerHeight);
+    row.classList.add('tip-on');
+  });
+  row.addEventListener('mouseleave', () => row.classList.remove('tip-on', 'tip-above'));
+});
 document.getElementById('addbtn').onclick = (e) => {
   const s = document.getElementById('addsection');
   const hidden = s.style.display === 'none';
