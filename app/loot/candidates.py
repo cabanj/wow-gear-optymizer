@@ -68,6 +68,7 @@ async def generate_candidates(
 
             # prescreen: skip if base ilvl ladder max << worn item (configurable)
             worn_ilvl = worn_items.get(slot, {}).get("item_level", 0)
+            variants = []
             if enc_name and _is_raid_source(enc_id, encounter_ids) or True:
                 pass  # source determined below
 
