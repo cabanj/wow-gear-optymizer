@@ -37,6 +37,10 @@ async def run_full_simulation(
 ) -> uuid.UUID:
     """Create a SimulationRun with generated profile; the simulator worker executes it."""
     s = get_settings()
+    # Re-fetch snapshot: callers may hold a stale object (expire_on_commit=False)
+    snapshot = (await db.execute(
+        select(CharacterSnapshot).where(CharacterSnapshot.id == snapshot.id)
+    )).scalar_one()
 
     # 1. current content (cached via api_cache by discovery functions)
     content = await detect_current_content(db)
