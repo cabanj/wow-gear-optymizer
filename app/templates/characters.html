@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Characters <button class="btn ghost" id="menubtn" title="toggle character list">☰</button></h1>
-<h2>Add character manually</h2>
+<h1>Characters</h1>
+<h2>Add character manually <button class="btn ghost" id="addbtn" title="show/hide">{{ '−' if not characters else '+' }}</button></h2>
+<div id="addsection" {% if characters %}style="display:none"{% endif %}>
 <p class="meta">Useful when Blizzard's character list comes back empty. Needs realm + exact name.</p>
 <form class="row" id="add-form">
   <input type="text" id="add-realm" placeholder="realm slug, e.g. shadowsong" required>
@@ -9,6 +10,7 @@
   <button class="btn" type="submit">Add + snapshot</button>
   <span class="meta" id="add-msg"></span>
 </form>
+</div>
 <h2>Sync</h2>
 <p>
   <button class="btn ghost" id="refresh">Refresh from Blizzard</button>
@@ -29,45 +31,51 @@
   </aside>
   <section class="char-detail">
     {% if current %}
-    <div class="paperdoll">
-      <div class="pd-col">
-        {% for g in gear_left %}
-        <a class="gear-slot" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
-          {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.slot_label }}" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
-          <span class="pd-info">
-            <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
-            {% if g.enchant %}<span class="pd-sub">{{ g.enchant }}</span>{% endif %}
-            {% for gm in g.gems %}<span class="pd-sub">◆ {{ gm }}</span>{% endfor %}
-          </span>
-          <span class="gear-ilvl">{{ g.ilvl }}</span>
-        </a>
-        {% endfor %}
-      </div>
-      <div class="pd-hero">
-        <div class="nm" style="color:{{ current.class_color }}">{{ current.name }}</div>
-        <div class="sub">{{ current.realm_slug }} · {{ current.class_name or '?' }} {{ current.active_spec_name or '' }}</div>
-        <div class="meta">snapshot: {{ current.snapshot_time or '—' }}</div>
-        <form id="select-form">
-          <label class="pick"><input type="checkbox" id="sel-one" {% if current.selected %}checked{% endif %}>
-            Simulate</label>
-          <button class="btn" type="submit">Save</button>
-          <span class="meta" id="msg"></span>
-        </form>
-      </div>
-      <div class="pd-col">
-        {% for g in gear_right %}
-        <a class="gear-slot" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
-          {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.slot_label }}" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
-          <span class="pd-info">
-            <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
-            {% if g.enchant %}<span class="pd-sub">{{ g.enchant }}</span>{% endif %}
-            {% for gm in g.gems %}<span class="pd-sub">◆ {{ gm }}</span>{% endfor %}
-          </span>
-          <span class="gear-ilvl">{{ g.ilvl }}</span>
-        </a>
-        {% endfor %}
-      </div>
+    <div class="pd-hero">
+      <div class="nm" style="color:{{ current.class_color }}">{{ current.name }}</div>
+      <div class="sub">{{ current.realm_slug }} · {{ current.class_name or '?' }} {{ current.active_spec_name or '' }}</div>
+      <div class="meta">snapshot: {{ current.snapshot_time or '—' }}</div>
+      <form id="select-form">
+        <label class="pick"><input type="checkbox" id="sel-one" {% if current.selected %}checked{% endif %}>
+          Simulate</label>
+        <button class="btn" type="submit">Save</button>
+        <span class="meta" id="msg"></span>
+      </form>
     </div>
+    {% if gear_left %}
+    <h3>Armor</h3>
+    <div class="gear-list">
+      {% for g in gear_left %}
+      <a class="gear-row" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
+        {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.slot_label }}" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
+        <span class="pd-info">
+          <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
+          {% if g.enchant %}<span class="pd-sub">✦ {{ g.enchant }}</span>{% endif %}
+          {% for gm in g.gems %}<span class="pd-sub">◆ {{ gm }}</span>{% endfor %}
+        </span>
+        <span class="gear-slotname">{{ g.slot_label }}</span>
+        <span class="gear-ilvl">{{ g.ilvl }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if gear_right %}
+    <h3>Jewelry &amp; weapons</h3>
+    <div class="gear-list">
+      {% for g in gear_right %}
+      <a class="gear-row" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
+        {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.slot_label }}" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
+        <span class="pd-info">
+          <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
+          {% if g.enchant %}<span class="pd-sub">✦ {{ g.enchant }}</span>{% endif %}
+          {% for gm in g.gems %}<span class="pd-sub">◆ {{ gm }}</span>{% endfor %}
+        </span>
+        <span class="gear-slotname">{{ g.slot_label }}</span>
+        <span class="gear-ilvl">{{ g.ilvl }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
     {% if not gear_left and not gear_right %}
     <div class="empty"><p>No gear snapshot for this character yet.</p></div>
     {% endif %}
@@ -77,8 +85,11 @@
   </section>
 </div>
 <script>
-document.getElementById('menubtn').onclick = () => {
-  document.getElementById('charlayout').classList.toggle('menu-hidden');
+document.getElementById('addbtn').onclick = (e) => {
+  const s = document.getElementById('addsection');
+  const hidden = s.style.display === 'none';
+  s.style.display = hidden ? '' : 'none';
+  e.target.textContent = hidden ? '−' : '+';
 };
 document.getElementById('refresh').onclick = async () => {
   const m = document.getElementById('msg2');

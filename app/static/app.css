@@ -91,37 +91,29 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
   overflow: hidden; text-overflow: ellipsis; }
 .gear-item .gear-slot { font-size: .75rem; color: var(--muted); }
 .gear-item .gear-ilvl { grid-row: span 2; font-weight: 700; font-variant-numeric: tabular-nums; }
-/* paperdoll: two gear columns, hero center */
-.paperdoll { display: grid; grid-template-columns: 1fr 13rem 1fr; gap: .8rem; align-items: start; }
-.pd-col { display: flex; flex-direction: column; gap: .35rem; }
-.gear-slot { display: grid; grid-template-columns: 2.6rem 1fr auto; gap: .5rem;
-  align-items: center; background: var(--panel); border: 1px solid var(--border);
-  border-radius: .45rem; padding: .35rem .5rem; text-decoration: none; color: inherit; }
-.gear-slot:hover { border-color: var(--accent); }
-.gear-slot img, .gear-slot .noicon { width: 2.6rem; height: 2.6rem; border-radius: .3rem;
+/* gear rows (reference: slot rows with icon, name, gem/enchant sublines, ilvl) */
+.gear-list { display: flex; flex-direction: column; }
+.gear-row { display: grid; grid-template-columns: 2.8rem 1fr auto 3.2rem; gap: .7rem;
+  align-items: center; padding: .45rem .6rem; text-decoration: none; color: inherit;
+  border-bottom: 1px solid var(--border); }
+.gear-row:hover { background: var(--panel); }
+.gear-row img, .gear-row .noicon { width: 2.8rem; height: 2.8rem; border-radius: .3rem;
   border: 1px solid var(--border); }
-.gear-slot .noicon { display: flex; align-items: center; justify-content: center;
+.gear-row .noicon { display: flex; align-items: center; justify-content: center;
   background: var(--panel2); color: var(--muted); font-weight: 700; }
 .pd-info { display: flex; flex-direction: column; min-width: 0; }
-.gear-slot .gear-name { font-size: .85rem; font-weight: 600; white-space: nowrap;
+.gear-row .gear-name { font-size: .92rem; font-weight: 600; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis; }
-.pd-sub { font-size: .75rem; color: var(--muted); white-space: nowrap;
+.pd-sub { font-size: .78rem; color: var(--muted); white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis; }
-.gear-slot .gear-ilvl { font-weight: 700; font-variant-numeric: tabular-nums; }
+.gear-row .gear-slotname { font-size: .78rem; color: var(--muted); text-align: right; }
+.gear-row .gear-ilvl { font-size: 1.05rem; font-weight: 700; text-align: right;
+  font-variant-numeric: tabular-nums; }
 .pd-hero { text-align: center; background: var(--panel); border: 1px solid var(--border);
-  border-radius: .6rem; padding: 1rem .7rem; position: sticky; top: 4rem; }
+  border-radius: .6rem; padding: 1rem .7rem; margin-bottom: 1rem; }
 .pd-hero .nm { font-size: 1.25rem; font-weight: 700; }
 .pd-hero .sub { color: var(--muted); font-size: .85rem; margin: .2rem 0 .6rem; }
 .pd-hero form { margin-top: .6rem; }
-.menu-hidden { grid-template-columns: 1fr; }
-.menu-hidden .char-menu { display: none; }
-@media (max-width: 900px) {
-  .paperdoll { grid-template-columns: 1fr 1fr; }
-  .pd-hero { grid-column: 1 / -1; order: -1; position: static; }
-}
-@media (max-width: 560px) {
-  .paperdoll { grid-template-columns: 1fr; }
-}
 /* character layout: side menu + detail */
 .char-layout { display: grid; grid-template-columns: 13rem 1fr; gap: 1rem; align-items: start; }
 .char-menu { display: flex; flex-direction: column; gap: .35rem; position: sticky; top: 4rem; }
