@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..blizzard.cache import cache_key, get_cached, set_cached
 from ..blizzard.client import BlizzardClient
 from ..db.models import BlizzardAccount, Character, CharacterSnapshot, SimulationResult, SimulationRun
 from ..loot.discovery import item_icon, item_metadata
@@ -111,11 +112,23 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
         except Exception:
             meta = {}
         mq = (q or (meta.get("quality") or {}).get("type", "") or "").lower()
+        ilvl_num = (it.get("level") or {}).get("value")
         effects = []
         for s in ((meta.get("preview_item") or {}).get("spells", []) or []):
             d = (s or {}).get("description")
-            if d:
-                effects.append(d)
+            sid = ((s or {}).get("spell") or {}).get("id")
+            if not d:
+                continue
+            if sid and isinstance(ilvl_num, int):
+                from ..simc.spells import scale_description
+                key = f"spellq:{sid}:{ilvl_num}"
+                cached = await get_cached(db, key)
+                if cached and not cached.get("pending") and cached.get("value") is not None:
+                    d = scale_description(d, cached.get("value"),
+                                          cached.get("duration"), cached.get("rating"))
+                else:
+                    await set_cached(db, key, {"pending": True}, 30 * 86400)
+            effects.append(d)
         weapon = None
         w = it.get("weapon") or {}
         if w:
