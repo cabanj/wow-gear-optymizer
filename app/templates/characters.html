@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Characters — WoW Gear Upgrade Analyzer</title>
+<link rel="stylesheet" href="/static/app.css"></head>
+<body>
+<main>
+  <h1>Characters</h1>
+  <button id="refresh">Refresh from Blizzard</button>
+  <form id="select-form">
+    <ul id="char-list">
+      {% for c in characters %}
+      <li>
+        <label>
+          <input type="checkbox" value="{{ c.id }}" {% if c.selected %}checked{% endif %}>
+          {{ c.name }} — {{ c.realm_slug }} — {{ c.class_name or '?' }}
+          {{ c.active_spec_name or '' }} — ilvl {{ c.level }}
+        </label>
+      </li>
+      {% endfor %}
+    </ul>
+    <button type="submit">Save selection</button>
+  </form>
+  <p id="msg"></p>
+</main>
+<script>
+document.getElementById('refresh').onclick = async () => {
+  const r = await fetch('/api/characters/refresh', {method: 'POST'});
+  document.getElementById('msg').textContent = r.ok ? 'Refreshed. Reloading…' : 'Refresh failed';
+  if (r.ok) setTimeout(() => location.reload(), 800);
+};
+document.getElementById('select-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const ids = [...document.querySelectorAll('#char-list input:checked')].map(i => i.value);
+  const r = await fetch('/api/characters/select', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({character_ids: ids})
+  });
+  document.getElementById('msg').textContent = r.ok ? 'Saved' : 'Save failed';
+};
+</script>
+</body>
+</html>

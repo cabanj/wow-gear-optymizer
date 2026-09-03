@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WoW Gear Upgrade Analyzer</title>
+<link rel="stylesheet" href="/static/app.css"></head>
+<body>
+<main>
+  <h1>WoW Gear Upgrade Analyzer</h1>
+  {% if user %}
+    <p>Logged in as <strong>{{ user.battletag }}</strong></p>
+    <a href="/characters">Characters</a> · <a href="/reports">Reports</a>
+  {% else %}
+    <p><a href="/auth/blizzard" class="btn">Login with Battle.net</a></p>
+  {% endif %}
+</main>
+</body>
+</html>
