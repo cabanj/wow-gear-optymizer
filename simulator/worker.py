@@ -21,7 +21,7 @@ try:
     import psycopg2.extras
 except ImportError:
     subprocess.run([sys.executable, "-m", "pip", "install", "--quiet",
-                    "psycopg2-binary"], check=False)
+                    "--break-system-packages", "psycopg2-binary"], check=False)
     try:
         import psycopg2
         import psycopg2.extras
