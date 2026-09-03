@@ -106,6 +106,24 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
         if not item_id or slot not in GEAR_ORDER:
             continue
         q = (it.get("quality") or {}).get("type", "").lower()
+        try:
+            meta = await item_metadata(db, item_id)
+        except Exception:
+            meta = {}
+        mq = ((meta.get("quality") or {}).get("type", "") or q).lower()
+        effects = []
+        for s in ((meta.get("preview_item") or {}).get("spells", []) or []):
+            d = (s or {}).get("description")
+            if d:
+                effects.append(d)
+        weapon = None
+        w = it.get("weapon") or {}
+        if w:
+            weapon = {
+                "damage": (w.get("damage") or {}).get("display_string", ""),
+                "dps": (w.get("dps") or {}).get("display_string", ""),
+                "speed": (w.get("attack_speed") or {}).get("display_string", ""),
+            }
         gems = []
         for g in it.get("gems", []) or []:
             gi = g.get("item") or {}
@@ -137,12 +155,14 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             "ilvl": (it.get("level") or {}).get("value") or "?",
             "quality": {"epic": "epic", "rare": "rare", "uncommon": "uncommon",
                         "legendary": "legendary", "artifact": "legendary",
-                        "heirloom": "rare"}.get(q, ""),
+                        "heirloom": "rare"}.get(mq, ""),
             "icon": await item_icon(db, item_id),
             "gems": gems,
             "sockets": sockets,
             "enchant": ench,
             "stats": armory_stats or stats_by_slot.get(slot, []),
+            "weapon": weapon,
+            "effects": effects,
         })
     gear.sort(key=lambda g: GEAR_ORDER.index(g["slot"]))
     return gear
