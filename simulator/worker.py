@@ -30,7 +30,7 @@ except ImportError:
 
 
 def get_conn():
-    return psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.real_dictcursor)
+    return psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 
 
 def claim_run(conn):
