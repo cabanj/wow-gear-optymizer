@@ -32,7 +32,7 @@ class BlizzardAccount(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     region: Mapped[str] = mapped_column(String(2))
     wow_accounts: Mapped[dict] = mapped_column(JSONB, default=dict)
-    tokens_encrypted: Mapped[bytes | None] = mapped_column(Text, nullable=True)
+    tokens_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     token_expires_at: Mapped[float | None] = mapped_column(nullable=True)
 
 

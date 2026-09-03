@@ -15,7 +15,7 @@ async def discover_characters(db: AsyncSession, account: BlizzardAccount) -> lis
     store_tokens = {}
     if account.tokens_encrypted:
         from ..auth.blizzard_oauth import TokenStore
-        store_tokens = TokenStore().decrypt(bytes(account.tokens_encrypted))
+        store_tokens = TokenStore().decrypt(account.tokens_encrypted.encode())
 
     data = await client.user_wow_accounts(store_tokens)
     result = []
@@ -62,7 +62,7 @@ async def snapshot_character(
     tokens = {}
     if account.tokens_encrypted:
         from ..auth.blizzard_oauth import TokenStore
-        tokens = TokenStore().decrypt(bytes(account.tokens_encrypted))
+        tokens = TokenStore().decrypt(account.tokens_encrypted.encode())
 
     summary = await client.character_summary(tokens, character.realm_slug, character.name)
     equipment = await client.character_equipment(tokens, character.realm_slug, character.name)

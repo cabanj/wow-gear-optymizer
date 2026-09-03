@@ -94,7 +94,7 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db),
         await db.flush()
     user.last_login = func_now()
 
-    blob = TokenStore().encrypt(tokens)
+    blob = TokenStore().encrypt(tokens).decode()
     account = (await db.execute(
         select(BlizzardAccount).where(
             BlizzardAccount.user_id == user.id,
