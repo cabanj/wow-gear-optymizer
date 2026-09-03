@@ -1,12 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Characters</h1>
+<h2>Add character manually</h2>
+<p class="meta">Useful when Blizzard's character list comes back empty. Needs realm + exact name.</p>
+<form class="row" id="add-form">
+  <input type="text" id="add-realm" placeholder="realm slug, e.g. shadowsong" required>
+  <input type="text" id="add-name" placeholder="character name" required>
+  <button class="btn" type="submit">Add + snapshot</button>
+  <span class="meta" id="add-msg"></span>
+</form>
+<h2>Sync</h2>
+<p>
+  <button class="btn ghost" id="refresh">Refresh from Blizzard</button>
+  <span class="meta" id="msg2"></span>
+</p>
+<h2>Characters</h2>
 <div class="char-layout">
   <aside class="char-menu">
     {% for c in characters %}
     <a class="menu-item{% if current and c.id == current.id %} active{% endif %}"
        href="/characters?character_id={{ c.id }}">
-      <span class="nm">{{ c.name }}</span>
+      <span class="nm" style="color:{{ c.class_color }}">{{ c.name }}</span>
       <span class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }}</span>
       {% if c.selected %}<span class="dot" title="selected for simulations">●</span>{% endif %}
     </a>
@@ -15,7 +29,8 @@
   </aside>
   <section class="char-detail">
     {% if current %}
-    <h2>{{ current.name }} <span class="meta">{{ current.realm_slug }} · {{ current.class_name or '?' }} {{ current.active_spec_name or '' }}</span></h2>
+    <h2><span style="color:{{ current.class_color }}">{{ current.name }}</span>
+      <span class="meta">{{ current.realm_slug }} · {{ current.class_name or '?' }} {{ current.active_spec_name or '' }}</span></h2>
     <p class="meta">snapshot: {{ current.snapshot_time or '—' }}</p>
     <form id="select-form">
       <label class="pick"><input type="checkbox" id="sel-one" {% if current.selected %}checked{% endif %}>
@@ -43,19 +58,6 @@
     {% endif %}
   </section>
 </div>
-<h2>Sync</h2>
-<p>
-  <button class="btn ghost" id="refresh">Refresh from Blizzard</button>
-  <span class="meta" id="msg2"></span>
-</p>
-<h2>Add character manually</h2>
-<p class="meta">Useful when Blizzard's character list comes back empty. Needs realm + exact name.</p>
-<form class="row" id="add-form">
-  <input type="text" id="add-realm" placeholder="realm slug, e.g. shadowsong" required>
-  <input type="text" id="add-name" placeholder="character name" required>
-  <button class="btn" type="submit">Add + snapshot</button>
-  <span class="meta" id="add-msg"></span>
-</form>
 <script>
 const allIds = {{ all_ids|tojson }};
 document.getElementById('refresh').onclick = async () => {
@@ -68,10 +70,8 @@ document.getElementById('refresh').onclick = async () => {
 document.getElementById('select-form').onsubmit = async (e) => {
   e.preventDefault();
   const one = document.getElementById('sel-one');
-  let ids = new Set(allIds.filter(id => document.querySelector(`.menu-item .dot`) && false) || []);
-  // reload current selection from server, then toggle this one
   const cur = await (await fetch('/api/characters')).json();
-  ids = new Set(cur.filter(c => c.selected).map(c => c.id));
+  const ids = new Set(cur.filter(c => c.selected).map(c => c.id));
   const myId = "{{ current.id if current else '' }}";
   if (one.checked) ids.add(myId); else ids.delete(myId);
   const r = await fetch('/api/characters/select', {

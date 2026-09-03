@@ -155,7 +155,9 @@ async def characters_page(request: Request, character_id: str | None = None,
         c.snapshot_time = snap_times.get(str(c.id))
     current = next((c for c in chars if str(c.id) == character_id),
                    next((c for c in chars if c.selected), chars[0] if chars else None))
-    from .reports.pages import character_gear
+    from .reports.pages import CLASS_COLORS, character_gear
+    for c in chars:
+        c.class_color = CLASS_COLORS.get(c.class_name or "", "#e8e6e3")
     gear_list = []
     if current is not None:
         try:
