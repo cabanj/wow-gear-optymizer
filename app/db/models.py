@@ -150,6 +150,14 @@ class SimulationResult(Base):
     raw: Mapped[dict] = mapped_column(JSONB, default=dict)
 
 
+class ApiCache(Base):
+    __tablename__ = "api_cache"
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSONB)
+    fetched_at: Mapped[float] = mapped_column()
+    ttl_seconds: Mapped[int] = mapped_column(Integer)
+
+
 class Report(Base):
     __tablename__ = "reports"
     id: Mapped[uuid.UUID] = pk_uuid()
