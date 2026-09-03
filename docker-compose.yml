@@ -49,4 +49,3 @@ volumes:
   pgdata:
   reports:
   simwork:
-  caddydata:
