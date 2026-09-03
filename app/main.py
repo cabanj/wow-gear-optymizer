@@ -12,7 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from .auth.blizzard_oauth import BlizzardOAuth, TokenStore, new_state
 from .characters.service import discover_characters, snapshot_character
 from .config import get_settings
-from .db.models import BlizzardAccount, Character, User
+from .db.models import BlizzardAccount, Character, CharacterSnapshot, User
 from .db.session import make_engine, make_sessionmaker
 from .scheduler.daily import create_scheduler
 
