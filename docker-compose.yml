@@ -29,13 +29,13 @@ services:
 
   simulator:
     image: simulationcraftorg/simc:${SIMC_IMAGE_TAG}
-    entrypoint: ["python3", "/app/worker.py"]
+    entrypoint: ["/bin/sh", "-c", "apk add --no-cache python3 py3-pip >/dev/null 2>&1 && python3 /srv/worker.py"]
     volumes:
       - ./simulator/worker.py:/srv/worker.py:ro
       - simwork:/work
       - reports:/data/reports
     environment:
-      DATABASE_URL: postgresql+psycopg2://wow:wow@postgres:5432/wow
+      DATABASE_URL: postgresql://wow:wow@postgres:5432/wow
       SIMC_PATH: /app/SimulationCraft/simc
       SIM_TIMEOUT_SECONDS: 3600
     depends_on:
