@@ -9,6 +9,7 @@ import os
 import subprocess
 import sys
 import time
+import uuid
 
 SIMC = os.environ.get("SIMC_PATH", "/app/SimulationCraft/simc")
 WORK = os.environ.get("SIM_WORK", "/work")
@@ -103,10 +104,11 @@ def store_results(conn, run_id: str, json2_text: str) -> None:
                     "talents": player.get("talents")}
             cur.execute("""
                 INSERT INTO simulation_results
-                (simulation_run_id, profileset_name, profile_type, mean, median,
+                (id, simulation_run_id, profileset_name, profile_type, mean, median,
                  min, max, stddev, iterations, confidence_interval, raw)
-                VALUES (%s, NULL, 'raid', %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s,%s,NULL,'raid',%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
+                str(uuid.uuid4()),
                 run_id,
                 dps.get("mean", 0), dps.get("median", 0),
                 dps.get("min", 0), dps.get("max", 0), dps.get("std_dev", 0),
@@ -121,10 +123,11 @@ def store_results(conn, run_id: str, json2_text: str) -> None:
             ptype = "mplus" if name.startswith("mplus") else "raid"
             cur.execute("""
                 INSERT INTO simulation_results
-                (simulation_run_id, profileset_name, profile_type, mean, median,
+                (id, simulation_run_id, profileset_name, profile_type, mean, median,
                  min, max, stddev, iterations, confidence_interval, raw)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
+                str(uuid.uuid4()),
                 run_id, name, ptype,
                 r.get("mean", 0), r.get("median", 0),
                 r.get("min", 0), r.get("max", 0), r.get("stddev", 0),
