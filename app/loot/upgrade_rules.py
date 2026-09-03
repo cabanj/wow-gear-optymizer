@@ -9,19 +9,38 @@ Policy decisions (Jacek, 2026-09-03):
 - Enchants/gems on candidates: identical to the item being replaced.
 """
 from dataclasses import dataclass, field
+import json
+from pathlib import Path
 
 
 @dataclass
 class TrackPolicy:
-    """Per-difficulty ilvl ladder for the current tier.
+    """Per-difficulty ilvl + bonus_ids for the current season.
 
-    Seeded from game data each season — values here are FALLBACKS ONLY,
-    real values come from content_items DB rows.
+    Loaded from docs/season-seed-midnight-s2.json (values cross-verified
+    against SimC DBC item_bonus data + wowhead/method.gg S2 tables, 2026-09-03).
+    Track meaning: 614=Veteran(LFR), 615=Champion(Normal), 616=Hero(Heroic),
+    617/618=Myth (Mythic / Vault).
     """
-    # difficulty → (bonus_ids, item_level) — resolved at seed time, not here
-    raid_ladder: dict[str, list[int]] = field(default_factory=dict)  # difficulty → bonus_ids
-    mplus_vault_ilvl: int = 0
-    mplus_bonus_roll_ilvl: int = 0
+    raid: dict[str, dict] = field(default_factory=dict)
+    mplus: dict[str, dict] = field(default_factory=dict)
+
+    @classmethod
+    def load(cls, path: str) -> "TrackPolicy":
+        data = json.loads(Path(path).read_text())
+        return cls(raid=data["raid"], mplus=data["mplus"])
+
+    def raid_variant(self, item_id: int, difficulty: str) -> dict:
+        v = self.raid[difficulty]
+        return {"item_id": item_id, "source": "raid", "difficulty": difficulty,
+                "item_level": v["ilvl"], "bonus_ids": [6652] + v["bonus_ids"],
+                "variant": None}
+
+    def mplus_variant(self, item_id: int, variant: str) -> dict:
+        v = self.mplus[variant]
+        return {"item_id": item_id, "source": "mplus", "difficulty": "mythic",
+                "item_level": v["ilvl"], "bonus_ids": [6652] + v["bonus_ids"],
+                "variant": variant}
 
 
 @dataclass

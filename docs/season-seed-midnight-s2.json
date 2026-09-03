@@ -1,0 +1,48 @@
+{
+  "season": "midnight-s2",
+  "raid": {
+    "lfr": {
+      "ilvl": 289,
+      "bonus_ids": [
+        12824
+      ]
+    },
+    "normal": {
+      "ilvl": 302,
+      "bonus_ids": [
+        12832
+      ]
+    },
+    "heroic": {
+      "ilvl": 315,
+      "bonus_ids": [
+        12844
+      ]
+    },
+    "mythic": {
+      "ilvl": 334,
+      "bonus_ids": [
+        12854
+      ]
+    }
+  },
+  "mplus": {
+    "great_vault": {
+      "ilvl": 318,
+      "bonus_ids": [
+        12845
+      ],
+      "note": "Myth 1/6 from +10 key"
+    },
+    "bonus_roll": {
+      "ilvl": 318,
+      "bonus_ids": [
+        12845
+      ],
+      "note": "Nebulous Voidcore, Myth track"
+    }
+  },
+  "base_bonus_ids": {
+    "note": "difficulty/track-independent bonuses like 6652 (s2 header) verified on worn items"
+  }
+}
