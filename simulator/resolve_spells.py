@@ -28,7 +28,7 @@ def query_spell(spell_id: int, ilvl: int) -> dict:
     Returns {'value': float|None, 'duration': str|None, 'rating': str|None}.
     """
     proc = subprocess.run(
-        [SIMC], input=f"spell_query=spell.id={spell_id}@{ilvl}\n",
+        [SIMC, "/dev/stdin"], input=f"spell_query=spell.id={spell_id}@{ilvl}\n",
         capture_output=True, text=True, timeout=120)
     out = proc.stdout + proc.stderr
     effects = {}
