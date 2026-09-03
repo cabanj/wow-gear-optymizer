@@ -110,7 +110,7 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             meta = await item_metadata(db, item_id)
         except Exception:
             meta = {}
-        mq = ((meta.get("quality") or {}).get("type", "") or q).lower()
+        mq = (q or (meta.get("quality") or {}).get("type", "") or "").lower()
         effects = []
         for s in ((meta.get("preview_item") or {}).get("spells", []) or []):
             d = (s or {}).get("description")
