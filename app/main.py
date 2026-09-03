@@ -191,6 +191,132 @@ async def api_snapshot(character_id: str,
             "item_level": float(snap.item_level) if snap.item_level else None}
 
 
+@app.post("/api/simulate/{character_id}")
+async def api_simulate(character_id: str, request: Request,
+                       user: User | None = Depends(get_current_user),
+                       db: AsyncSession = Depends(get_db)):
+    """Kick off a full simulation for a character (uses latest snapshot)."""
+    if user is None:
+        raise HTTPException(401, "not logged in")
+    body = await request.json()
+    profile_type = body.get("profile_type", "raid")
+    if profile_type not in ("raid", "mplus"):
+        raise HTTPException(400, "profile_type must be raid or mplus")
+    char = (await db.execute(
+        select(Character).join(BlizzardAccount).where(
+            Character.id == character_id, BlizzardAccount.user_id == user.id)
+    )).scalar_one_or_none()
+    if char is None:
+        raise HTTPException(404, "character not found")
+    snap = (await db.execute(
+        select(CharacterSnapshot).where(
+            CharacterSnapshot.character_id == character_id,
+            CharacterSnapshot.is_current.is_(True))
+        .order_by(CharacterSnapshot.timestamp.desc())
+    )).scalars().first()
+    if snap is None:
+        raise HTTPException(400, "no snapshot; import character first")
+    from .reports.service import run_full_simulation
+    run_id = await run_full_simulation(db, char, snap, profile_type)
+    return {"run_id": str(run_id), "status": "pending"}
+
+
+@app.get("/api/runs/{run_id}")
+async def api_run_status(run_id: str,
+                         user: User | None = Depends(get_current_user),
+                         db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import select as _sel
+    from .db.models import SimulationRun as _SR
+    run = (await db.execute(_sel(_SR).where(_SR.id == run_id))).scalar_one_or_none()
+    if run is None:
+        raise HTTPException(404, "run not found")
+    data = {"run_id": str(run.id), "status": run.status, "error": run.error,
+            "simc_version": run.simc_version, "wow_build": run.wow_build}
+    if run.status == "completed":
+        from .reports.service import build_report_data
+        data["report"] = await build_report_data(db, run.id)
+    return data
+
+
+@app.post("/api/import/simc")
+async def api_import_simc(request: Request,
+                          user: User | None = Depends(get_current_user),
+                          db: AsyncSession = Depends(get_db)):
+    """Manual /simc addon import: parse text, validate, save as precise snapshot."""
+    if user is None:
+        raise HTTPException(401, "not logged in")
+    body = await request.json()
+    simc_text = body.get("simc_text", "")
+    character_id = body.get("character_id")
+    if not simc_text or not character_id:
+        raise HTTPException(400, "simc_text and character_id required")
+    from .simc.importer import parse_simc_addon
+    parsed = parse_simc_addon(simc_text)
+    if parsed is None:
+        raise HTTPException(400, "invalid /simc output")
+    char = (await db.execute(
+        select(Character).join(BlizzardAccount).where(
+            Character.id == character_id, BlizzardAccount.user_id == user.id)
+    )).scalar_one_or_none()
+    if char is None:
+        raise HTTPException(404, "character not found")
+    old = (await db.execute(
+        select(CharacterSnapshot).where(
+            CharacterSnapshot.character_id == character_id,
+            CharacterSnapshot.is_current.is_(True))
+    )).scalars().all()
+    for s in old:
+        s.is_current = False
+    from datetime import datetime, timezone
+    snap = CharacterSnapshot(
+        character_id=character_id, source="simc_addon_import",
+        timestamp=datetime.now(timezone.utc),
+        raw={"parsed": parsed}, simc_text=simc_text,
+        item_level=parsed.get("item_level"), is_current=True,
+    )
+    db.add(snap)
+    await db.commit()
+    return {"snapshot_id": str(snap.id), "item_level": parsed.get("item_level")}
+
+
+@app.get("/api/reports")
+async def api_reports(user: User | None = Depends(get_current_user),
+                      db: AsyncSession = Depends(get_db)):
+    if user is None:
+        raise HTTPException(401, "not logged in")
+    from .db.models import Report as _R
+    reports = (await db.execute(
+        select(_R).join(Character).join(BlizzardAccount)
+        .where(BlizzardAccount.user_id == user.id).order_by(_R.report_date.desc())
+    )).scalars().all()
+    return [{"id": str(r.id), "character_id": str(r.character_id),
+             "date": str(r.report_date), "status": r.status,
+             "baseline_raid": float(r.baseline_dps_raid) if r.baseline_dps_raid else None,
+             "baseline_mplus": float(r.baseline_dps_mplus) if r.baseline_dps_mplus else None}
+            for r in reports]
+
+
+@app.get("/api/reports/{report_id}")
+async def api_report(report_id: str,
+                     user: User | None = Depends(get_current_user),
+                     db: AsyncSession = Depends(get_db)):
+    if user is None:
+        raise HTTPException(401, "not logged in")
+    from .db.models import Report as _R
+    rep = (await db.execute(select(_R).where(_R.id == report_id))).scalar_one_or_none()
+    if rep is None:
+        raise HTTPException(404, "report not found")
+    data = {"id": str(rep.id), "date": str(rep.report_date), "status": rep.status,
+            "snapshot_age_warning": rep.snapshot_age_warning}
+    if rep.simulation_run_raid:
+        from .reports.service import build_report_data
+        data["raid"] = await build_report_data(db, rep.simulation_run_raid)
+    if rep.simulation_run_mplus:
+        from .reports.service import build_report_data
+        data["mplus"] = await build_report_data(db, rep.simulation_run_mplus)
+    return data
+
+
 @app.get("/api/health")
 async def health(db: AsyncSession = Depends(get_db)):
     await db.execute(text("SELECT 1"))
