@@ -13,6 +13,7 @@ from .characters.service import discover_characters, snapshot_character
 from .config import get_settings
 from .db.models import BlizzardAccount, Character, User
 from .db.session import make_engine, make_sessionmaker
+from .scheduler.daily import create_scheduler
 
 templates = Jinja2Templates(directory="app/templates")
 
