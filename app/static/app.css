@@ -18,7 +18,7 @@
 body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg);
   color: var(--text); margin: 0; }
 main { max-width: 72rem; margin: 0 auto; padding: 1.2rem 1rem 3rem; }
-main.wide { max-width: 82rem; }
+main.wide { max-width: 78rem; }
 a { color: #9ecbff; }
 nav.top { display: flex; gap: 1rem; align-items: center; padding: .7rem 1rem;
   background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; }
@@ -191,7 +191,7 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 .menu-item .dot { color: var(--up); font-size: .8rem; float: right; }
 .char-detail h2 { margin-top: 0; }
 .char-detail h3 { margin: 1.2rem 0 .5rem; font-size: 1rem; font-weight: 650; }
-.char-detail > p.meta:first-child { margin-top: .55rem; margin-bottom: .8rem; }
+.char-detail h3:first-child { margin-top: 0; }
 @media (max-width: 700px) {
   .char-layout { grid-template-columns: 1fr; }
   .char-menu { position: static; flex-direction: row; flex-wrap: wrap; }
