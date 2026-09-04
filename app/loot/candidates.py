@@ -310,7 +310,7 @@ async def generate_candidates(
         for _, mh_id, mh, mhv, oh_id, oh, ohv, tier, diff, variant in combos[:MAX_COMBOS]:
             src = "raid" if tier == "raid" else "mplus"
             combo_items.append(CandidateItem(
-                item_id=mh_id, name=f"{mh['name']} + {oh['name']}",
+                item_id=mh_id, name=mh["name"],
                 slot="main_hand",
                 item_level=max(mhv["item_level"], ohv["item_level"]),
                 bonus_ids=mhv["bonus_ids"], source=src, difficulty=diff,
@@ -318,7 +318,7 @@ async def generate_candidates(
                 boss_or_dungeon=f"{mh['boss']} / {oh['boss']}",
                 inventory_type="Two-Hand",
                 pset=f"{src}_combo_{mh_id}x{oh_id}_main_hand",
-                off_item_id=oh_id, off_name=oh["name"],
+                off_item_id=oh_id, off_name=f"{oh['name']} (OH combo)",
                 off_ilvl=ohv["item_level"], off_bonus_ids=ohv["bonus_ids"],
                 off_boss=oh["boss"],
             ))
