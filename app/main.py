@@ -164,14 +164,20 @@ async def characters_page(request: Request, character_id: str | None = None,
             gear_list = await character_gear(db, current.id)
         except Exception:
             gear_list = []
-    left_slots = {"HEAD", "NECK", "SHOULDER", "BACK", "CHEST", "WRIST",
-                  "HANDS", "WAIST", "LEGS", "FEET"}
-    gear_left = [g for g in gear_list if g["slot"] in left_slots]
-    gear_right = [g for g in gear_list if g["slot"] not in left_slots]
+    armor_slots = {"HEAD", "NECK", "SHOULDER", "BACK", "CHEST", "WRIST",
+                   "HANDS", "WAIST", "LEGS", "FEET"}
+    sections = [
+        ("Armor", [g for g in gear_list if g["slot"] in armor_slots]),
+        ("Rings", [g for g in gear_list if g["slot"] in ("FINGER_1", "FINGER_2")]),
+        ("Trinkets", [g for g in gear_list if g["slot"] in ("TRINKET_1", "TRINKET_2")]),
+        ("Weapons", [g for g in gear_list if g["slot"] in ("MAIN_HAND", "OFF_HAND")]),
+    ]
+    gear_left = [g for g in gear_list if g["slot"] in armor_slots]
+    gear_right = [g for g in gear_list if g["slot"] not in armor_slots]
     return templates.TemplateResponse(request, "characters.html",
                                        {"user": user, "characters": chars,
                                         "current": current, "gear_left": gear_left,
-                                        "gear_right": gear_right,
+                                        "gear_right": gear_right, "sections": sections,
                                         "all_ids": [str(c.id) for c in chars]})
 
 

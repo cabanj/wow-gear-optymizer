@@ -145,11 +145,27 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             gems.append(gi.get("name") or f"gem {gi.get('id', '?')}")
         sockets = []
         for s in it.get("sockets", []) or []:
-            gem = (s.get("item") or {}).get("name")
+            sitem = s.get("item") or {}
+            gem = sitem.get("name")
             stype = (s.get("socket_type") or {}).get("name") or "Socket"
             if gem:
+                gem_id = sitem.get("id")
+                gem_icon, gem_q = "", ""
+                if gem_id:
+                    try:
+                        gem_icon = await item_icon(db, gem_id) or ""
+                    except Exception:
+                        gem_icon = ""
+                    try:
+                        gmeta = await item_metadata(db, gem_id)
+                        gem_q = ((gmeta.get("quality") or {}).get("type", "") or "").lower()
+                    except Exception:
+                        gem_q = ""
                 sockets.append({"filled": True,
-                                "text": f"{gem} ({s.get('display_string', '')})".strip()})
+                                "text": f"{gem} ({s.get('display_string', '')})".strip(),
+                                "gem_icon": gem_icon,
+                                "gem_quality": {"epic": "epic", "rare": "rare",
+                                                "uncommon": "uncommon"}.get(gem_q, "")})
             else:
                 sockets.append({"filled": False, "text": f"Empty {stype}"})
         ench = ""
