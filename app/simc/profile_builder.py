@@ -4,6 +4,7 @@ Baseline uses `local_json` (Blizzard Armory JSON saved from our snapshot) —
 recommended over `armory=` in profilesets (wiki: slows init).
 """
 import json
+import re
 from dataclasses import dataclass, field
 
 def _equipment_realm(snapshot_raw: dict) -> str:
@@ -39,6 +40,7 @@ class Candidate:
     tier: bool = False
     pset: str = ""       # profileset name override (combos)
     off_item_id: int = 0
+    off_name: str = ""
     off_bonus_ids: list[int] = field(default_factory=list)
     off_ilevel: int = 0
 
@@ -54,9 +56,19 @@ def _simc_slot(slot: str) -> str:
     return SIMC_SLOT.get(slot, slot)
 
 
-def _item_spec(item_id: int, bonus_ids: list[int], enchant_id: int | None,
-               gems: list[str], item_level: int) -> str:
-    parts = [f"id={item_id}"]
+def _slug(name: str) -> str:
+    """SimC item label: no spaces (profileset values split on whitespace),
+    no , = / \" (structural chars). The label is positional only — SimC takes
+    everything before the first comma as the name, so id= must never be first.
+    """
+    s = re.sub(r'[,="/]', "", name or "item")
+    s = re.sub(r"\s+", "_", s.strip()).strip("_")
+    return s.lower() or "item"
+
+
+def _item_spec(name: str, item_id: int, bonus_ids: list[int],
+               enchant_id: int | None, gems: list[str], item_level: int) -> str:
+    parts = [f"{_slug(name)},id={item_id}"]
     if bonus_ids:
         parts.append("bonus_id=" + "/".join(str(b) for b in bonus_ids))
     if enchant_id:
@@ -68,16 +80,28 @@ def _item_spec(item_id: int, bonus_ids: list[int], enchant_id: int | None,
     return ",".join(parts)
 
 
-def _item_line(candidate: Candidate) -> str:
+def _item_lines(candidate: Candidate, name: str) -> list[str]:
+    """Profileset input lines. Combos need TWO lines (SimC += appends an
+    option to an existing profileset); a /-joined single line does not split.
+    """
     slot = _simc_slot(candidate.replace_slot or candidate.slot)
-    main = _item_spec(candidate.item_id, candidate.bonus_ids,
+    main = _item_spec(candidate.name, candidate.item_id, candidate.bonus_ids,
                       candidate.enchant_id, candidate.gems, candidate.item_level)
     if candidate.off_item_id:
-        # 1H + off-hand combo replaces both slots at once (options joined by /)
-        off = _item_spec(candidate.off_item_id, candidate.off_bonus_ids,
-                         None, [], candidate.off_ilevel)
-        return f"main_hand={main}/off_hand={off}"
-    return f"{slot}={main}"
+        # 1H + off-hand combo replaces both slots at once
+        off = _item_spec(candidate.off_name, candidate.off_item_id,
+                         candidate.off_bonus_ids, None, [], candidate.off_ilevel)
+        return [f'profileset."{name}"=main_hand={main}',
+                f'profileset."{name}"+=off_hand={off}']
+    return [f'profileset."{name}"={slot}={main}']
+
+
+def _item_line(candidate: Candidate) -> str:
+    """Single-line form (non-combo only); combos use _item_lines."""
+    slot = _simc_slot(candidate.replace_slot or candidate.slot)
+    return f"{slot}=" + _item_spec(
+        candidate.name, candidate.item_id, candidate.bonus_ids,
+        candidate.enchant_id, candidate.gems, candidate.item_level)
 
 
 def build_baseline(snapshot_raw: dict, fallback_realm: str = "",
@@ -145,7 +169,7 @@ def build_profileset_input(
         name = c.pset or f"{c.source}_{c.item_id}_{c.slot}"
         if not c.pset and c.replace_slot and c.replace_slot != c.slot:
             name += f"_replaces_{c.replace_slot}"
-        lines.append(f'profileset."{name}"={_item_line(c)}')
+        lines.extend(_item_lines(c, name))
         lines.append("")
     return "\n".join(lines)
 
@@ -173,6 +197,6 @@ def build_combined_input(
         ]
         for c in cands:
             name = f"{ptype}_{c.source}_{c.item_id}_{c.slot}"
-            lines.append(f'profileset."{name}"={_item_line(c)}')
+            lines.extend(_item_lines(c, name))
             lines.append("")
     return "\n".join(lines)

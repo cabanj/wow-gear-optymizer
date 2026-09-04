@@ -27,7 +27,8 @@ def _to_builder_candidate(c: CandidateItem, worn: dict) -> Candidate:
         source=c.source, boss_or_dungeon=c.boss_or_dungeon,
         upgrade_track=c.difficulty,
         pset=c.pset,
-        off_item_id=c.off_item_id, off_bonus_ids=c.off_bonus_ids or [],
+        off_item_id=c.off_item_id, off_name=c.off_name,
+        off_bonus_ids=c.off_bonus_ids or [],
         off_ilevel=c.off_ilvl,
     )
 
