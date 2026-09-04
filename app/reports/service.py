@@ -76,7 +76,9 @@ async def run_full_simulation(
     encounter_ids = {e.id: e.name for e in content.raid_encounters}
     # TODO phase 6: mplus dungeon encounters from season dungeon pool
     candidates = await generate_candidates(
-        db, encounter_ids, worn, policy, max_per_slot=s.max_candidates_per_slot
+        db, encounter_ids, worn, policy,
+        max_per_slot=s.max_candidates_per_slot,
+        class_name=character.class_name or "",
     )
     builder_cands = [_to_builder_candidate(c, worn) for c in candidates]
 

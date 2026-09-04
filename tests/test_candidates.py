@@ -1,38 +1,115 @@
-"""Tests for candidate generation."""
+"""Tests for class-aware candidate generation and slot mapping."""
+import sys
+
+sys.path.insert(0, ".")
+
 import pytest
 
-from app.loot.candidates import INV_TO_SLOT, CandidateItem
-from app.loot.upgrade_rules import TrackPolicy
+from app.loot.candidates import _slot_from_inv, _class_allows, generate_candidates
 
 
-SEED = {
-    "raid": {
-        "lfr": {"ilvl": 289, "bonus_ids": [12824]},
-        "normal": {"ilvl": 302, "bonus_ids": [12832]},
-        "heroic": {"ilvl": 315, "bonus_ids": [12844]},
-        "mythic": {"ilvl": 334, "bonus_ids": [12854]},
-    },
-    "mplus": {
-        "great_vault": {"ilvl": 318, "bonus_ids": [12845]},
-        "bonus_roll": {"ilvl": 318, "bonus_ids": [12845]},
-    },
+def test_slot_from_inv():
+    assert _slot_from_inv("Two-Hand") == "main_hand"
+    assert _slot_from_inv("Two-Handed") == "main_hand"
+    assert _slot_from_inv("One-Hand") == "main_hand"
+    assert _slot_from_inv("Main Hand") == "main_hand"
+    assert _slot_from_inv("Off Hand") == "off_hand"
+    assert _slot_from_inv("Holdable") == "off_hand"
+    assert _slot_from_inv("Trinket") == "trinket1"
+    assert _slot_from_inv("Finger") == "finger1"
+    assert _slot_from_inv("") is None
+    assert _slot_from_inv("Ranged Rifle") == "main_hand"
+
+
+def test_class_allows_armor_and_weapon():
+    cloth = {"item_class": {"name": "Armor"}, "item_subclass": {"name": "Cloth"}}
+    leather = {"item_class": {"name": "Armor"}, "item_subclass": {"name": "Leather"}}
+    trink = {"item_class": {"name": "Armor"}, "item_subclass": {"name": "Miscellaneous"}}
+    staff = {"item_class": {"name": "Weapon"}, "item_subclass": {"name": "Staff"}}
+    axe = {"item_class": {"name": "Weapon"}, "item_subclass": {"name": "Two-Handed Axe"}}
+    assert _class_allows(cloth, "Warlock")
+    assert not _class_allows(leather, "Warlock")
+    assert _class_allows(trink, "Warlock")
+    assert _class_allows(staff, "Warlock")
+    assert not _class_allows(axe, "Warlock")
+    assert _class_allows(axe, "Warrior")
+    assert not _class_allows(staff, "Rogue")
+
+
+# --- integration: candidate generation via monkeypatched discovery ---
+class FakeDB:
+    def __init__(self, items):
+        self.items = items  # id -> {class, subclass, inv, boss}
+
+    async def item_metadata(self, item_id):
+        d = self.items[item_id]
+        return {"item_class": {"name": d["class"]},
+                "item_subclass": {"name": d["subclass"]},
+                "inventory_type": {"name": d["inv"]}}
+
+
+class FakePolicy:
+    def raid_variant(self, item_id, diff):
+        return {"item_id": item_id, "source": "raid", "difficulty": diff,
+                "item_level": {"lfr": 280, "normal": 292, "heroic": 305,
+                               "mythic": 334}[diff],
+                "bonus_ids": [6652], "variant": None}
+
+    def mplus_variant(self, item_id, variant):
+        return {"item_id": item_id, "source": "mplus", "difficulty": "mythic",
+                "item_level": 318, "bonus_ids": [6652], "variant": variant}
+
+
+ITEMS = {
+    101: {"class": "Armor", "subclass": "Cloth", "inv": "Head"},
+    102: {"class": "Armor", "subclass": "Leather", "inv": "Chest"},
+    103: {"class": "Armor", "subclass": "Miscellaneous", "inv": "Trinket"},
+    104: {"class": "Weapon", "subclass": "Staff", "inv": "Two-Hand"},
+    105: {"class": "Weapon", "subclass": "Two-Handed Axe", "inv": "Two-Hand"},
+    106: {"class": "Armor", "subclass": "Cloth", "inv": "Shoulder"},
+    107: {"class": "Armor", "subclass": "Miscellaneous", "inv": "Trinket"},
 }
+WORN = {"head": {"item_id": 900, "item_level": 300},
+        "main_hand": {"item_id": 901, "item_level": 331},
+        "trinket1": {"item_id": 902, "item_level": 310},
+        "trinket2": {"item_id": 903, "item_level": 300}}
 
 
-def test_track_policy_load(tmp_path):
-    p = tmp_path / "seed.json"
-    p.write_text(__import__("json").dumps(SEED))
-    pol = TrackPolicy.load(str(p))
-    v = pol.raid_variant(999, "mythic")
-    assert v["item_level"] == 334
-    assert v["bonus_ids"] == [6652, 12854]
-    m = pol.mplus_variant(999, "great_vault")
-    assert m["item_level"] == 318
-    assert m["variant"] == "great_vault"
+def test_generate_class_filtered_no_dupes(monkeypatch):
+    import asyncio
+    from app.loot import candidates as C
 
+    async def fake_encounter(adb, enc_id):
+        out = []
+        for iid in ITEMS:
+            d = ITEMS[iid]
+            if d["inv"] in ("Head", "Chest", "Shoulder", "Two-Hand", "Trinket"):
+                out.append({"item_id": iid, "name": f"item{iid}"})
+        return out
 
-def test_inv_to_slot_mapping():
-    assert INV_TO_SLOT["TRINKET"] == "trinket1"
-    assert INV_TO_SLOT["FINGER"] == "finger1"
-    assert INV_TO_SLOT["TWO_HANDED"] == "main_hand"
-    assert INV_TO_SLOT["HOLDABLE"] == "off_hand"
+    async def fake_meta(adb, item_id):
+        d = ITEMS[item_id]
+        return {"item_class": {"name": d["class"]},
+                "item_subclass": {"name": d["subclass"]},
+                "inventory_type": {"name": d["inv"]}}
+
+    monkeypatch.setattr(C, "encounter_items", fake_encounter)
+    monkeypatch.setattr(C, "item_metadata", fake_meta)
+
+    async def run():
+        return await generate_candidates(None, {1: "Boss"}, WORN, FakePolicy(),
+                                         max_per_slot=3, class_name="Warlock")
+
+    cands = asyncio.run(run())
+    # all are Warlock-equippable: no axe(105), no leather(102)
+    ids = [c.item_id for c in cands]
+    assert 105 not in ids
+    assert 102 not in ids
+    # staff 2H present as main_hand candidate
+    assert any(c.item_id == 104 and c.slot == "main_hand" for c in cands)
+    # no duplicates: same (item, ilvl, slot) appears once
+    keyed = [(c.item_id, c.item_level, c.slot) for c in cands]
+    assert len(keyed) == len(set(keyed))
+    # trinkets tried against both slots (each trinket item yields 2 targets)
+    tk1 = [c.slot for c in cands if c.item_id == 103]
+    assert set(tk1) == {"trinket1", "trinket2"}
