@@ -149,6 +149,16 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 .menu-item .nm { font-weight: 650; }
 .menu-item .sub { display: block; color: var(--muted); font-size: .78rem; }
 .menu-item .snap { display: block; color: var(--muted); font-size: .72rem; opacity: .8; }
+/* rail actions live under the character list */
+.rail-actions { display: flex; flex-direction: column; gap: .45rem; margin-top: .5rem;
+  border-top: 1px solid var(--border); padding-top: .7rem; }
+.rail-btn { width: 100%; }
+.rail-form { display: flex; flex-direction: column; gap: .45rem; margin: .1rem 0 .3rem; }
+.rail-form input[type=text], .rail-form .btn { width: 100%; }
+/* paper-doll: armor and jewelry side by side on desktop */
+.gear-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; align-items: start; }
+.gear-cols h3:first-child { margin-top: 0; }
+.gear-ench { color: var(--up); }
 /* armory-like tooltip */
 .gear-row { position: relative; }
 .gear-row .tip { display: none; position: absolute; left: 3rem; top: 100%; z-index: 20;
@@ -173,6 +183,8 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
   .char-layout { grid-template-columns: 1fr; }
   .char-menu { position: static; flex-direction: row; flex-wrap: wrap; }
   .menu-item { flex: 1 1 8rem; }
+  .rail-actions { flex: 1 1 100%; }
+  .gear-cols { grid-template-columns: 1fr; }
 }
 /* forms */
 form.row { display: flex; gap: .5rem; flex-wrap: wrap; margin: .8rem 0; }
