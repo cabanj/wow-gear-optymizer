@@ -29,9 +29,9 @@ def _slot_from_inv(inv_type: str) -> str | None:
                 ("bow", "gun", "crossbow", "thrown")):
         return "main_hand"  # ranged weapons occupy the main hand slot
     body = key.split()[0] if key else ""
-    if body in ("head", "shoulder", "chest", "wrist", "hands", "waist",
+    if body in ("head", "shoulder", "chest", "robe", "wrist", "hands", "waist",
                 "legs", "feet", "neck", "back", "cloak"):
-        return {"back": "back", "cloak": "back"}.get(body, body)
+        return {"back": "back", "cloak": "back", "robe": "chest"}.get(body, body)
     if body in ("finger", "ring"):
         return "finger1"
     if body == "trinket":
@@ -195,11 +195,11 @@ async def generate_candidates(
             # pool 1H weapons + off-hands for combo generation (no lone 1H
             # candidates: a 1H without off-hand is never a real setup)
             if _is_onehand(imeta):
-                onehanders[item_id] = {"name": name, "boss": enc_name}
+                onehanders[item_id] = {"name": name, "boss": enc_name, "enc_id": enc_id}
                 if not worn_items.get("off_hand", {}).get("item_id"):
                     continue  # combos only; lone 1H needs a worn off-hand
             elif _is_offhand_inv(inv_type):
-                offhands[item_id] = {"name": name, "boss": enc_name}
+                offhands[item_id] = {"name": name, "boss": enc_name, "enc_id": enc_id}
                 continue  # off-hands only ever sim as part of a combo
 
             # pairs: trinket items are tried against both worn trinket slots
@@ -221,7 +221,7 @@ async def generate_candidates(
 
             variants = []
             for diff in ("lfr", "normal", "heroic", "mythic"):
-                v = policy.raid_variant(item_id, diff)
+                v = policy.raid_variant(item_id, diff, enc_id)
                 if owned(item_id, v["item_level"]):
                     continue
                 keep = v["item_level"] >= worn_ilvl or inv_type in ("TRINKET", "FINGER")
@@ -258,9 +258,9 @@ async def generate_candidates(
                 for _tier, diff, variant in (
                         ("raid", "mythic", None),
                         ("vault", "mythic", "great_vault")):
-                    mhv = policy.raid_variant(mh_id, "mythic") if _tier == "raid" \
+                    mhv = policy.raid_variant(mh_id, "mythic", mh.get("enc_id")) if _tier == "raid" \
                         else policy.mplus_variant(mh_id, "great_vault")
-                    ohv = policy.raid_variant(oh_id, "mythic") if _tier == "raid" \
+                    ohv = policy.raid_variant(oh_id, "mythic", oh.get("enc_id")) if _tier == "raid" \
                         else policy.mplus_variant(oh_id, "great_vault")
                     if (worn_mh.get("item_id") == mh_id and (worn_mh.get("item_level") or 0) >= mhv["item_level"]
                             and worn_oh.get("item_id") == oh_id and (worn_oh.get("item_level") or 0) >= ohv["item_level"]):
@@ -288,7 +288,9 @@ async def generate_candidates(
             _add(c)
 
     # cap per slot by ilvl desc, keep boss/difficulty variety on ties —
-    # combos bypass the cap (already capped globally at MAX_COMBOS)
+    # combos bypass the cap (already capped globally at MAX_COMBOS).
+    # Everything at the slot's top ilvl is kept (same-ilvl variety must not
+    # lose to an alphabetical tiebreak); the cap applies to lower tiers only.
     combo_keys = {(c.item_id, c.item_level, c.slot) for c in combo_items} \
         if onehanders and offhands else set()
     out: list[CandidateItem] = []
@@ -296,7 +298,10 @@ async def generate_candidates(
         cands.sort(key=lambda c: (-c.item_level, c.boss_or_dungeon, c.source))
         fixed = [c for c in cands if (c.item_id, c.item_level, c.slot) in combo_keys]
         rest = [c for c in cands if (c.item_id, c.item_level, c.slot) not in combo_keys]
-        out.extend(fixed + rest[:max_per_slot])
+        top_ilvl = max([c.item_level for c in rest] or [0])
+        top = [c for c in rest if c.item_level == top_ilvl]
+        lower = [c for c in rest if c.item_level < top_ilvl][:max_per_slot]
+        out.extend(fixed + top + lower)
     out.sort(key=lambda c: -c.item_level)
     return out
 

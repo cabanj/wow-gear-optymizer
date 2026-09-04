@@ -24,6 +24,12 @@
       "bonus_ids": [
         12854
       ]
+    },
+    "final_boss_mythic": {
+      "note": "End-boss loot drops one tier higher (verified: Ula'tek Mythic 344, wowhead bonus 13335:12854). Encounter IDs, not names.",
+      "encounters": [2895],
+      "ilvl": 344,
+      "bonus_ids": [12854, 13335]
     }
   },
   "mplus": {

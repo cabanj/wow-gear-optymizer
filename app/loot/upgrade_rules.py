@@ -28,10 +28,17 @@ class TrackPolicy:
     @classmethod
     def load(cls, path: str) -> "TrackPolicy":
         data = json.loads(Path(path).read_text())
-        return cls(raid=data["raid"], mplus=data["mplus"])
+        obj = cls(raid=data["raid"], mplus=data["mplus"])
+        obj.final_boss = data.get("raid", {}).get("final_boss_mythic") or {}
+        return obj
 
-    def raid_variant(self, item_id: int, difficulty: str) -> dict:
+    def raid_variant(self, item_id: int, difficulty: str,
+                     encounter_id: int | None = None) -> dict:
         v = self.raid[difficulty]
+        fb = self.final_boss if hasattr(self, "final_boss") else {}
+        if (difficulty == "mythic" and encounter_id is not None
+                and encounter_id in (fb.get("encounters") or [])):
+            v = fb
         return {"item_id": item_id, "source": "raid", "difficulty": difficulty,
                 "item_level": v["ilvl"], "bonus_ids": [6652] + v["bonus_ids"],
                 "variant": None}

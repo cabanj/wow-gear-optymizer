@@ -302,6 +302,7 @@ async def run_report(db: AsyncSession, run_id) -> dict:
     from ..simc.profile_builder import SLOT_MAP
     worn_map: dict[str, dict] = {}
     if snap.raw.get("equipment"):
+        from ..loot.embellishments import embellishments_for
         for it in snap.raw["equipment"].get("equipped_items", []):
             bslot = (it.get("slot") or {}).get("type", "")
             canon = SLOT_MAP.get(bslot, bslot.lower())
@@ -309,6 +310,8 @@ async def run_report(db: AsyncSession, run_id) -> dict:
                 "name": it.get("name") or (it.get("item") or {}).get("name") or "?",
                 "item_id": (it.get("item") or {}).get("id") or 0,
                 "ilvl": (it.get("level") or {}).get("value") or "?",
+                "embellishments": [e["name"] for e in embellishments_for(
+                    it.get("bonus_list") or (it.get("item") or {}).get("bonus_ids") or [])],
             }
     for r in data["ranking"]:
         c = cand_by_name.get(r["name"], {})
