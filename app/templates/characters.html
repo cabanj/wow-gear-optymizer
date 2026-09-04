@@ -51,6 +51,7 @@
         <span class="pd-info">
           <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
           {% if g.enchant %}<span class="pd-sub gear-ench">✦ {{ g.enchant }}</span>{% endif %}
+          {% for e in g.embellishments or [] %}<span class="pd-sub gear-emb">❖ Embellished: {{ e.name }}</span>{% endfor %}
           {% for s in g.sockets %}{{ socket_row(s) }}{% endfor %}
         </span>
         <span class="tip">
@@ -62,6 +63,7 @@
           {% for st in g.stats %}<span class="tip-row {% if st.sec %}tip-sec{% else %}tip-stat{% endif %}">{{ st.text }}</span>{% endfor %}
           {% for ef in g.effects %}<span class="tip-row tip-effect">{{ ef }}</span>{% endfor %}
           {% if g.enchant %}<span class="tip-row tip-ench">{{ g.enchant }}</span>{% endif %}
+          {% for e in g.embellishments or [] %}<span class="tip-row gear-emb">❖ Embellished: {{ e.name }}</span>{% endfor %}
           {% for s in g.sockets %}{% if not s.filled %}{{ socket_tip(s) }}{% endif %}{% endfor %}
           <span class="tip-row tip-hint">Click for Wowhead ↗</span>
         </span>

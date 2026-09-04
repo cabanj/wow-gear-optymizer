@@ -21,3 +21,15 @@ def test_scale_leaves_cooldown_alone():
 def test_no_value_keeps_base():
     d = "Equip: grant you 33 Critical Strike for 12 sec."
     assert scale_description(d, None, None, None) == d
+
+
+def test_scale_random_secondary_stat():
+    d = "Use: Take a small sip of venom, gaining 513 of a random secondary stat for 15 sec."
+    out = scale_description(d, 913.93, None, None)
+    assert out == "Use: Take a small sip of venom, gaining 914 of a random secondary stat for 15 sec."
+
+
+def test_scale_does_not_touch_cooldown_number():
+    d = "Use: Echo the drum. (4 Sec Cooldown)"
+    out = scale_description(d, 0.0, None, None)
+    assert out == d

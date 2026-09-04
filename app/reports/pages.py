@@ -126,7 +126,7 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
                 if cached and not cached.get("pending") and cached.get("value") is not None:
                     d = scale_description(d, cached.get("value"),
                                           cached.get("duration"), cached.get("rating"))
-                else:
+                elif not cached or cached.get("pending"):
                     await set_cached(db, key, {"pending": True}, 30 * 86400)
             effects.append(d)
         weapon = None
@@ -174,6 +174,8 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             if ench:
                 break
         ench = _clean_enchant(ench)
+        from ..loot.embellishments import embellishments_for
+        emb_list = embellishments_for(it.get("bonus_list") or [])
         armory_stats = [{"text": s.get("display", {}).get("display_string", ""),
                            "sec": (s.get("type") or {}).get("type") in SECONDARY_STATS}
                         for s in it.get("stats", []) or []
@@ -191,6 +193,7 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             "gems": gems,
             "sockets": sockets,
             "enchant": ench,
+            "embellishments": emb_list,
             "stats": armory_stats or stats_by_slot.get(slot, []),
             "weapon": weapon,
             "armor": armor,

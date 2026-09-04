@@ -1,0 +1,221 @@
+{
+ "build": "12.1.0.69587",
+ "embellishments": {
+  "8188": {
+   "name": "Armor Spikes",
+   "spell_id": 396581
+  },
+  "8175": {
+   "name": "Potion Absorption Inhibitor",
+   "spell_id": 371700
+  },
+  "8174": {
+   "name": "Alchemical Flavor Pocket",
+   "spell_id": 372120
+  },
+  "8932": {
+   "name": "Blue Silken Lining",
+   "spell_id": 387335
+  },
+  "8937": {
+   "name": "Bronzed Grip Wrappings",
+   "spell_id": 396442
+  },
+  "8796": {
+   "name": "Fang Adornments",
+   "spell_id": 377708
+  },
+  "8797": {
+   "name": "Toxified Armor Patch",
+   "spell_id": 378758
+  },
+  "8913": {
+   "name": "Magazine of Healing Darts",
+   "spell_id": 415446
+  },
+  "9237": {
+   "name": "Griftah's All-Purpose Embellishing Powder",
+   "spell_id": 400698
+  },
+  "9379": {
+   "name": "Shadowflame-Tempered Armor Patch",
+   "spell_id": 406254
+  },
+  "9399": {
+   "name": "Statuette of Foreseen Power",
+   "spell_id": 377360
+  },
+  "9400": {
+   "name": "Figurine of the Gathering Storm",
+   "spell_id": 411126
+  },
+  "9412": {
+   "name": "Reserve Parachute",
+   "spell_id": 409838
+  },
+  "9416": {
+   "name": "Medical Wrap Kit",
+   "spell_id": 409923
+  },
+  "9521": {
+   "name": "Verdant Conduit",
+   "spell_id": 418410
+  },
+  "9532": {
+   "name": "Dreamtender's Charm",
+   "spell_id": 419368
+  },
+  "9614": {
+   "name": "Verdant Tether",
+   "spell_id": 426552
+  },
+  "10520": {
+   "name": "Elemental Focusing Lens",
+   "spell_id": 461177
+  },
+  "10518": {
+   "name": "Prismatic Null Stone",
+   "spell_id": 435992
+  },
+  "10521": {
+   "name": "Captured Starlight",
+   "spell_id": 460521
+  },
+  "11103": {
+   "name": "Blessed Weapon Grip",
+   "spell_id": 443743
+  },
+  "11109": {
+   "name": "Writhing Armor Banding",
+   "spell_id": 443902
+  },
+  "11299": {
+   "name": "Darkmoon Sigil: Radiance",
+   "spell_id": 454558
+  },
+  "11300": {
+   "name": "Darkmoon Sigil: Ascension",
+   "spell_id": 458573
+  },
+  "11302": {
+   "name": "Darkmoon Sigil: Symbiosis",
+   "spell_id": 463232
+  },
+  "11301": {
+   "name": "Darkmoon Sigil: Vivacity",
+   "spell_id": 454857
+  },
+  "11209": {
+   "name": "Pouch of Pocket Grenades",
+   "spell_id": 453503
+  },
+  "11210": {
+   "name": "Concealed Chaos Module",
+   "spell_id": 453813
+  },
+  "11226": {
+   "name": "Energy Redistribution Beacon",
+   "spell_id": 455147
+  },
+  "11303": {
+   "name": "Dawnthread Lining",
+   "spell_id": 457665
+  },
+  "11304": {
+   "name": "Duskthread Lining",
+   "spell_id": 457677
+  },
+  "11941": {
+   "name": "Griftah's Heavy-Duty Embellishing Powder",
+   "spell_id": 463429
+  },
+  "12384": {
+   "name": "Arcanoweave Lining",
+   "spell_id": 1283697
+  },
+  "12385": {
+   "name": "Sunfire Silk Lining",
+   "spell_id": 1241711
+  },
+  "12705": {
+   "name": "Darkmoon Sigil: Blood",
+   "spell_id": 1245053
+  },
+  "13640": {
+   "name": "Darkmoon Sigil: Void",
+   "spell_id": 1245052
+  },
+  "12692": {
+   "name": "Darkmoon Sigil: Rot",
+   "spell_id": 1245055
+  },
+  "12693": {
+   "name": "Darkmoon Sigil: Hunt",
+   "spell_id": 1245054
+  },
+  "12685": {
+   "name": "Devouring Banding",
+   "spell_id": 1244238
+  },
+  "12686": {
+   "name": "Blessed Pango Charm",
+   "spell_id": 1259060
+  },
+  "12687": {
+   "name": "Primal Spore Binding",
+   "spell_id": 1244276
+  },
+  "12715": {
+   "name": "Lucky Keychain",
+   "spell_id": 1246298
+  },
+  "12717": {
+   "name": "Kinetic Ankle Primers",
+   "spell_id": 1246308
+  },
+  "12990": {
+   "name": "B1P, Scorcher of Souls",
+   "spell_id": 1246309
+  },
+  "12991": {
+   "name": "M3DDY, Travel-Sized",
+   "spell_id": 1246312
+  },
+  "13453": {
+   "name": "Prismatic Focusing Iris",
+   "spell_id": 1251906
+  },
+  "13454": {
+   "name": "Stabilizing Gemstone Bandolier",
+   "spell_id": 1251905
+  },
+  "13556": {
+   "name": "HU5H, Nonchalant Pup",
+   "spell_id": 1259648
+  },
+  "13588": {
+   "name": "B0P, Curator of Booms",
+   "spell_id": 1261968
+  },
+  "13764": {
+   "name": "Snakeskin Lining",
+   "spell_id": 1296550
+  },
+  "13767": {
+   "name": "Adorned Fang",
+   "spell_id": 1296870
+  },
+  "13768": {
+   "name": "Polished Ammolite",
+   "spell_id": 1296982
+  },
+  "13769": {
+   "name": "Coiled Snake-Eye",
+   "spell_id": 1297384
+  },
+  "13771": {
+   "name": "Hunter's Ritual Stone",
+   "spell_id": 1297382
+  }
+ }
+}
