@@ -91,7 +91,9 @@ async def run_full_simulation(
         "threads": 4,
         "profileset_work_threads": 2,
     }
-    profile = build_profileset_input(snapshot.raw, builder_cands, profile_type, sim_config)
+    profile = build_profileset_input(snapshot.raw, builder_cands, profile_type, sim_config,
+                                     fallback_realm=character.realm_slug,
+                                     fallback_name=character.name)
 
     # 6. create run (persist candidate metadata for the report pages)
     run = SimulationRun(
