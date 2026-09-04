@@ -35,6 +35,14 @@ def test_scale_does_not_touch_cooldown_number():
     assert out == d
 
 
+def test_scale_effigy_secondary_and_tertiary():
+    d = ("Equip: Your spells and abilities have a chance to grant you 178 "
+         "of a random secondary stat and 89 of a random tertiary stat for 12 sec.")
+    out = scale_description(d, 362.17, None, None, 181.10)
+    assert out == ("Equip: Your spells and abilities have a chance to grant you 362 "
+                   "of a random secondary stat and 181 of a random tertiary stat for 12 sec.")
+
+
 def test_scale_gain_and_reduction():
     d = ("Use: Take a small sip of venom, gaining 513 of a random secondary stat "
          "for 15 sec. Afterwards, a random secondary stat is reduced by 73 "

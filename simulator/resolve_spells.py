@@ -69,6 +69,9 @@ def query_spell(spell_id: int, ilvl: int) -> dict:
         if sub.get(2):
             value2 = abs(sub[2])
             break
+    if value2 is None and effects.get(2):
+        # e.g. Effigy: #1 secondary + #2 tertiary on the same spell
+        value2 = abs(effects[2])
     return {"value": value, "value2": value2, "duration": dur, "rating": rating}
 
 

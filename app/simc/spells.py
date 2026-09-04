@@ -28,14 +28,21 @@ def scale_description(desc: str, value: float | None, duration: str | None,
             scaled = out2 != out
             out = out2
         if not scaled:
-            # "gaining 513 of a random secondary stat" — no stat name to anchor on
-            out2 = re.sub(r"(gaining\s+)[\d,]+(\s+of a random secondary stat)",
+            # "gaining/grant you 513 of a random secondary stat" — no stat name
+            out2 = re.sub(r"((?:gaining|grant you)\s+)[\d,]+(\s+of a random secondary stat)",
                           r"\g<1>" + new + r"\g<2>", out, count=1)
             scaled = out2 != out
             out = out2
     if scaled and value2 is not None:
-        out = re.sub(r"(reduced by\s+)[\d,]+", r"\g<1>" + f"{value2:.0f}",
-                     out, count=1)
+        new2 = f"{value2:.0f}"
+        # "... and 89 of a random tertiary stat" -> value2
+        out3 = re.sub(r"([\s])[\d,]+(\s+of a random tertiary stat)",
+                      r"\g<1>" + new2 + r"\g<2>", out, count=1)
+        if out3 == out:
+            # "... reduced by 73 ..." -> value2
+            out3 = re.sub(r"(reduced by\s+)[\d,]+", r"\g<1>" + new2,
+                          out, count=1)
+        out = out3
     if duration:
         secs = re.sub(r"\s*seconds?\s*$", "", duration).strip()
         if secs.isdigit():
