@@ -364,20 +364,27 @@ async def run_report(db: AsyncSession, run_id) -> dict:
 
 
 def _snapshot_talents(snap) -> dict:
-    """Active spec + hero tree + loadout code from an armory snapshot."""
+    """Active spec + hero tree + loadout code from an armory snapshot.
+
+    Only the ACTIVE specialization counts — other specs' loadouts are ignored.
+    """
     specs = ((snap.raw or {}).get("specializations") or {})
     out = {"spec": "?", "hero": "", "code": "", "armory_url": ""}
+    active = (specs.get("active_specialization") or {}).get("name", "")
     for s in specs.get("specializations", []) or []:
-        if (s.get("specialization") or {}).get("name"):
-            for lo in s.get("loadouts") or []:
-                if lo.get("is_active"):
-                    out["spec"] = (s.get("specialization") or {}).get("name", "?")
-                    hero = lo.get("selected_hero_talents") or {}
-                    out["hero"] = hero.get("name") if isinstance(hero, dict) else ""
-                    if not out["hero"]:
-                        ht = specs.get("active_hero_talent_tree") or {}
-                        out["hero"] = ht.get("name", "")
-                    out["code"] = lo.get("talent_loadout_code") or ""
+        if (s.get("specialization") or {}).get("name") != active:
+            continue
+        for lo in s.get("loadouts") or []:
+            if lo.get("is_active"):
+                out["spec"] = active
+                hero = lo.get("selected_hero_talents") or {}
+                out["hero"] = hero.get("name") if isinstance(hero, dict) else ""
+                if not out["hero"]:
+                    ht = specs.get("active_hero_talent_tree") or {}
+                    out["hero"] = ht.get("name", "")
+                out["code"] = lo.get("talent_loadout_code") or ""
+    if out["spec"] == "?" and active:
+        out["spec"] = active
     return out
 
 

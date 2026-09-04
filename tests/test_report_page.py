@@ -74,3 +74,24 @@ def test_characters_latest_report_link():
                        "profile_type": "raid"})
     assert "/reports/abc" in html
     assert "Showing gear" not in html
+
+
+def test_snapshot_talents_only_active_spec():
+    from types import SimpleNamespace
+    from app.reports.pages import _snapshot_talents
+    snap = SimpleNamespace(raw={
+        "specializations": {
+            "active_specialization": {"name": "Demonology"},
+            "active_hero_talent_tree": {"name": "Diabolist"},
+            "specializations": [
+                {"specialization": {"name": "Demonology"}, "loadouts": [
+                    {"is_active": True, "talent_loadout_code": "DEMO123",
+                     "selected_hero_talents": {"name": "Diabolist"}}]},
+                {"specialization": {"name": "Affliction"}, "loadouts": [
+                    {"is_active": True, "talent_loadout_code": "AFF999",
+                     "selected_hero_talents": {"name": "Soul Harvester"}}]},
+            ]}})
+    t = _snapshot_talents(snap)
+    assert t["spec"] == "Demonology"
+    assert t["hero"] == "Diabolist"
+    assert t["code"] == "DEMO123"
