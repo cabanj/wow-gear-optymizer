@@ -216,6 +216,16 @@ SLOT_LABELS = {
 }
 
 
+def pair_slots(gear_list: list[dict]) -> tuple[list[tuple], list[tuple]]:
+    """Row pairs for the paper-doll layout: (left, right) items, None when missing."""
+    by_slot = {g["slot"]: g for g in gear_list}
+    armor = [("HEAD", "HANDS"), ("NECK", "WAIST"), ("SHOULDER", "LEGS"),
+             ("BACK", "FEET"), ("CHEST", "FINGER_1"), ("WRIST", "FINGER_2")]
+    weapons = [("MAIN_HAND", "TRINKET_1"), ("OFF_HAND", "TRINKET_2")]
+    return ([(by_slot.get(a), by_slot.get(b)) for a, b in armor],
+            [(by_slot.get(a), by_slot.get(b)) for a, b in weapons])
+
+
 def _fmt(n) -> str:
     return f"{float(n):,.0f}".replace(",", " ")
 

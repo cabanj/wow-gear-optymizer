@@ -12,6 +12,6 @@
   <span class="spacer"></span>
   {% if user %}<span class="who">{{ user.battletag }}</span>{% endif %}
 </nav>
-<main>{% block content %}{% endblock %}</main>
+<main class="{% block mainclass %}{% endblock %}">{% block content %}{% endblock %}</main>
 </body>
 </html>

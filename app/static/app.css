@@ -18,6 +18,7 @@
 body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg);
   color: var(--text); margin: 0; }
 main { max-width: 72rem; margin: 0 auto; padding: 1.2rem 1rem 3rem; }
+main.wide { max-width: 96rem; }
 a { color: #9ecbff; }
 nav.top { display: flex; gap: 1rem; align-items: center; padding: .7rem 1rem;
   background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; }
@@ -105,9 +106,12 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 .gear-item .gear-ilvl { grid-row: span 2; font-weight: 700; font-variant-numeric: tabular-nums; }
 /* gear rows (reference: slot rows with icon, name, gem/enchant sublines, ilvl) */
 .gear-list { display: flex; flex-direction: column; }
-.gear-row { display: grid; grid-template-columns: 3rem 2.8rem 1fr auto; gap: .7rem;
+.gear-row { display: grid; grid-template-columns: 3rem 2.8rem 1fr; gap: .7rem;
   align-items: center; padding: .45rem .6rem; text-decoration: none; color: inherit;
-  border-bottom: 1px solid var(--border); }
+  border-bottom: 1px solid var(--border); min-width: 0; }
+/* paired paper-doll rows: two items side by side */
+.pair-grid { display: flex; flex-direction: column; }
+.pair-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .gear-row:hover { background: var(--panel); }
 .gear-row img, .gear-row .noicon { width: 2.8rem; height: 2.8rem; border-radius: .3rem;
   border: 1px solid var(--border); }
@@ -192,6 +196,8 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
   .menu-item { flex: 1 1 8rem; }
   .rail-actions { flex: 1 1 100%; }
   .gear-cols { grid-template-columns: 1fr; }
+  .pair-row { grid-template-columns: 1fr; }
+  .pd-sub { white-space: normal; }
 }
 /* forms */
 form.row { display: flex; gap: .5rem; flex-wrap: wrap; margin: .8rem 0; }

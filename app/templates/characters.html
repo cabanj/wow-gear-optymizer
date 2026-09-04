@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block mainclass %}wide{% endblock %}
 {% block content %}
 <h1>Characters</h1>
 <div class="char-layout" id="charlayout">
@@ -52,7 +53,6 @@
           {% if g.enchant %}<span class="pd-sub gear-ench">✦ {{ g.enchant }}</span>{% endif %}
           {% for s in g.sockets %}{{ socket_row(s) }}{% endfor %}
         </span>
-        <span class="gear-slotname">{{ g.slot_label }}</span>
         <span class="tip">
           <span class="tip-name q-{{ g.quality }}">{{ g.name }}</span>
           <span class="tip-row">Item Level {{ g.ilvl }} · {{ g.slot_label }}</span>
@@ -68,26 +68,24 @@
       </a>
 {%- endmacro %}
   <p class="meta">Showing gear for <strong>{{ current.name }}</strong></p>
-  {% if sections %}
-  <div class="gear-cols">
-    <div>
-    {% if sections[0][1] %}
-    <h3>{{ sections[0][0] }}</h3>
-    <div class="gear-list">
-      {% for g in sections[0][1] %}{{ gear_row(g) }}{% endfor %}
+  {% if armor_rows or weapon_rows %}
+  <h3>Armor</h3>
+  <div class="pair-grid">
+    {% for left, right in armor_rows %}
+    <div class="pair-row">
+      {% if left %}{{ gear_row(left) }}{% else %}<span></span>{% endif %}
+      {% if right %}{{ gear_row(right) }}{% else %}<span></span>{% endif %}
     </div>
-    {% endif %}
-    </div>
-    <div>
-    {% for title, items in sections[1:] %}
-    {% if items %}
-    <h3>{{ title }}</h3>
-    <div class="gear-list">
-      {% for g in items %}{{ gear_row(g) }}{% endfor %}
-    </div>
-    {% endif %}
     {% endfor %}
+  </div>
+  <h3>Weapons &amp; trinkets</h3>
+  <div class="pair-grid">
+    {% for left, right in weapon_rows %}
+    <div class="pair-row">
+      {% if left %}{{ gear_row(left) }}{% else %}<span></span>{% endif %}
+      {% if right %}{{ gear_row(right) }}{% else %}<span></span>{% endif %}
     </div>
+    {% endfor %}
   </div>
   {% endif %}
     {% if not gear_left and not gear_right %}
