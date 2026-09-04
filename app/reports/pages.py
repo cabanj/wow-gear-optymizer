@@ -277,14 +277,23 @@ async def run_report(db: AsyncSession, run_id) -> dict:
 
     rows = []
     max_delta = max([r["delta_dps"] for r in data["ranking"]] + [1])
-    last_boss = None
+    # worn items from THIS run's snapshot (historically accurate replaces info)
+    from ..simc.profile_builder import SLOT_MAP
+    worn_map: dict[str, dict] = {}
+    if snap.raw.get("equipment"):
+        for it in snap.raw["equipment"].get("equipped_items", []):
+            bslot = (it.get("slot") or {}).get("type", "")
+            canon = SLOT_MAP.get(bslot, bslot.lower())
+            worn_map[canon] = {
+                "name": it.get("name") or (it.get("item") or {}).get("name") or "?",
+                "item_id": (it.get("item") or {}).get("id") or 0,
+                "ilvl": (it.get("level") or {}).get("value") or "?",
+            }
     for r in data["ranking"]:
         c = cand_by_name.get(r["name"], {})
         slot = (c.get("slot") or r["name"].split("_")[-1])
         boss = c.get("boss_or_dungeon") or "—"
-        group = None
-        if boss != last_boss:
-            group, last_boss = boss, boss
+        rep = worn_map.get(slot, {})
         rows.append({
             "rank": r["rank"], "name": r["name"],
             "item_name": c.get("name") or r["name"],
@@ -294,10 +303,12 @@ async def run_report(db: AsyncSession, run_id) -> dict:
             "source_label": ("Mythic+ " + (c.get("variant") or "")).strip()
                             if r["name"].startswith("mplus")
                             else ("Raid " + (c.get("difficulty") or "")).strip(),
-            "boss": boss, "group": group,
+            "boss": boss,
             "ilvl": c.get("item_level") or "?",
             "bonus_ids": "/".join(map(str, c.get("bonus_ids") or [])) or "—",
-            "replaces": worn.get(slot, "?"),
+            "replaces": worn.get(slot, rep.get("name", "?")),
+            "replaces_item_id": rep.get("item_id", 0),
+            "replaces_ilvl": rep.get("ilvl", "?"),
             "quality": await _quality(db, c.get("item_id") or 0),
             "stats": "",
             "dps_fmt": _fmt(r["dps"]), "median_fmt": _fmt(data["ranking"] and r.get("dps", 0)),
@@ -315,15 +326,30 @@ async def run_report(db: AsyncSession, run_id) -> dict:
         "snapshot_time": snap.timestamp.strftime("%Y-%m-%d %H:%M UTC"),
         "snapshot_source": "SimC addon import" if snap.source == "simc_addon_import"
                            else "Blizzard Armory",
+        "simulated_at": (run.finished_at or run.created_at).strftime("%Y-%m-%d %H:%M UTC"),
         "simc_version": run.simc_version, "wow_build": run.wow_build,
         "content_version": run.content_version,
         "baseline_fmt": _fmt(data["baseline_dps"] or 0),
         "best": ({"pct": f"{rows[0]['pct_fmt']}", "dps": rows[0]["delta_fmt"],
                   "name": rows[0]["item_name"], "boss": rows[0]["boss"],
                   "ilvl": rows[0]["ilvl"]} if rows else None),
+        "top3": rows[:3],
         "rows": rows,
-        "slots": sorted({row["slot_label"] for row in rows}),
+        "slots": sorted({(row["slot"], row["slot_label"]) for row in rows}),
     }
+
+
+async def latest_run(db: AsyncSession, character_id) -> dict | None:
+    """Newest completed simulation run for a character (for the report link)."""
+    run = (await db.execute(select(SimulationRun)
+                            .where(SimulationRun.character_id == character_id,
+                                   SimulationRun.status == "completed")
+                            .order_by(SimulationRun.finished_at.desc()))).scalars().first()
+    if run is None:
+        return None
+    return {"id": str(run.id),
+            "finished_at": (run.finished_at or run.created_at).strftime("%Y-%m-%d %H:%M"),
+            "profile_type": (run.simulation_config or {}).get("profile_type", "?")}
 
 
 async def list_runs(db: AsyncSession, user_id, character_id=None) -> list[dict]:

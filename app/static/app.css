@@ -87,6 +87,13 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 .rank-row.open .rank-detail { display: block; }
 .rank-detail dl { display: grid; grid-template-columns: auto 1fr; gap: .15rem .8rem; margin: 0; }
 .rank-detail dt { color: var(--muted); }
+/* replaces link with hover tooltip */
+.rep-link { position: relative; color: #9ecbff; }
+.rep-link .mini-tip { display: none; position: absolute; left: 0; top: 100%; z-index: 20;
+  min-width: 12rem; background: #0a0c12; border: 1px solid #4a5266;
+  border-radius: .4rem; padding: .5rem .65rem; box-shadow: 0 6px 24px rgba(0,0,0,.6);
+  pointer-events: none; font-size: .8rem; color: #cfd6e4; white-space: nowrap; }
+.rep-link:hover .mini-tip { display: block; }
 .boss-group { margin: 1rem 0 .3rem; color: var(--text); font-size: .95rem; font-weight: 650; }
 .boss-group .cnt { color: var(--muted); font-weight: 400; font-size: .8rem; }
 /* gear grid on characters page */

@@ -1,44 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ character.name }} <span class="meta">{{ character.realm }} · {{ character.spec }} · ilvl {{ character.item_level or '?' }}</span></h1>
-<p class="meta report-meta">Snapshot: {{ snapshot_time }} ({{ snapshot_source }}) ·
-<details><summary>build info</summary>SimC {{ simc_version or '?' }} · WoW {{ wow_build or '?' }} · {{ content_version or '' }}</details></p>
-{% if warning %}<p class="warn">⚠ {{ warning }}</p>{% endif %}
-
-{% if best %}
-<div class="hunt-bar">
-  <span class="hunt-tag">Poluj dziś na</span>
-  <div class="hunt-mid">
-    <div class="hunt-name">{{ best.name }}</div>
-    <div class="hunt-sub">{{ best.boss }} · ilvl {{ best.ilvl }}</div>
-  </div>
-  <div>
-    <div class="hunt-dps">+{{ best.dps }} DPS ({{ best.pct }}%)</div>
-    <div class="hunt-base">masz teraz {{ baseline_fmt }} DPS</div>
-  </div>
-</div>
-{% endif %}
-
-<div class="tabs" id="srctabs">
-  <button class="on" data-f="all">All</button>
-  <button data-f="raid">Raid</button>
-  <button data-f="mplus">Mythic+</button>
-  <button id="groupbtn" aria-pressed="true" title="toggle grouping">Grouped: on</button>
-</div>
-<div class="chips" id="slotchips">
-  <button class="on" data-s="all">All slots</button>
-  {% for s in slots %}<button data-s="{{ s }}">{{ s }}</button>{% endfor %}
-</div>
-
-<div id="ranking">
-{% for r in rows %}
-{% if r.group %}<div class="boss-group" data-src="{{ r.source }}">{{ r.group }}</div>{% endif %}
+{% macro rank_row(r) -%}
 <div class="rank-row{% if r.rank == 1 %} rank-1{% endif %}" data-src="{{ r.source }}" data-slot="{{ r.slot }}">
   <div class="rank-main">
     <div class="rank-pos">#{{ r.rank }}</div>
     <div>
       <div class="rank-name q-{{ r.quality }}">{{ r.item_name }}</div>
-      <div class="rank-sub">{{ r.slot_label }} · {{ r.boss }} · ilvl {{ r.ilvl }} · replaces {{ r.replaces }}</div>
+      <div class="rank-sub">{{ r.slot_label }} · {{ r.boss }} · ilvl {{ r.ilvl }} · replaces
+        {% if r.replaces_item_id %}<a class="rep-link" href="https://www.wowhead.com/item={{ r.replaces_item_id }}" target="_blank" rel="noopener">{{ r.replaces }}<span class="mini-tip">{{ r.replaces }}<br>Item Level {{ r.replaces_ilvl }}<br><span class="tip-hint">Click for Wowhead ↗</span></span></a>{% else %}{{ r.replaces }}{% endif %}
+      </div>
       <div class="bar"><i style="width:{{ r.bar_pct }}%"></i></div>
     </div>
     <div class="rank-delta">
@@ -58,55 +28,54 @@
     </dl>
   </div>
 </div>
-{% endfor %}
+{%- endmacro %}
+<h1>{{ character.name }} <span class="meta">{{ character.realm }} · {{ character.spec }} · ilvl {{ character.item_level or '?' }}</span></h1>
+<p class="meta report-meta">Snapshot: {{ snapshot_time }} ({{ snapshot_source }}) · Simulated: {{ simulated_at }} ·
+<details><summary>build info</summary>SimC {{ simc_version or '?' }} · WoW {{ wow_build or '?' }} · {{ content_version or '' }}</details></p>
+{% if warning %}<p class="warn">⚠ {{ warning }}</p>{% endif %}
+
+<h2>Top 3 upgrades</h2>
+<div id="top3">
+{% for r in top3 %}{{ rank_row(r) }}{% endfor %}
+{% if not top3 %}<div class="empty"><p>No simulation results in this report.</p></div>{% endif %}
 </div>
 
-<h2>Baseline DPS over time</h2>
-<canvas id="hist" height="120"></canvas>
+<h2>Browse by slot</h2>
+<div class="tabs" id="srctabs">
+  <button class="on" data-f="all">All</button>
+  <button data-f="raid">Raid</button>
+  <button data-f="mplus">Mythic+</button>
+</div>
+<div class="chips" id="slotchips">
+  <button class="on" data-s="all">All slots</button>
+  {% for val, label in slots %}<button data-s="{{ val }}">{{ label }}</button>{% endfor %}
+</div>
+
+<div id="ranking">
+{% for r in rows %}{{ rank_row(r) }}{% endfor %}
+</div>
+
 <p class="meta">Results are simulation estimates. Small differences may be within simulation error.</p>
 
 <script>
-const rows = [...document.querySelectorAll('.rank-row')];
-const groups = [...document.querySelectorAll('.boss-group')];
-let src = 'all', slot = 'all', grouped = true;
-document.querySelectorAll('#srctabs button[data-f]').forEach(b => b.onclick = () => {
-  document.querySelectorAll('#srctabs button[data-f]').forEach(x => x.classList.remove('on'));
+const rows = [...document.querySelectorAll('#ranking .rank-row')];
+let src = 'all', slot = 'all';
+document.querySelectorAll('#srctabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#srctabs button').forEach(x => x.classList.remove('on'));
   b.classList.add('on'); src = b.dataset.f; apply();
 });
 document.querySelectorAll('#slotchips button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#slotchips button').forEach(x => x.classList.remove('on'));
   b.classList.add('on'); slot = b.dataset.s; apply();
 });
-document.getElementById('groupbtn').onclick = (e) => {
-  grouped = !grouped;
-  e.target.textContent = 'Grouped: ' + (grouped ? 'on' : 'off');
-  e.target.setAttribute('aria-pressed', grouped);
-  apply();
-};
 function apply() {
   rows.forEach(tr => {
     const okS = src === 'all' || tr.dataset.src === src;
     const okSl = slot === 'all' || tr.dataset.slot === slot;
     tr.style.display = (okS && okSl) ? '' : 'none';
   });
-  groups.forEach(g => {
-    g.style.display = (!grouped || (src !== 'all' && g.dataset.src !== src)) ? 'none' : '';
-  });
-  if (!grouped) groups.forEach(g => g.style.display = 'none');
 }
 apply();
-groups.forEach(g => {
-  let n = 0;
-  for (let el = g.nextElementSibling; el && !el.classList.contains('boss-group'); el = el.nextElementSibling) {
-    if (el.classList.contains('rank-row')) n++;
-  }
-  if (n) g.innerHTML += ' <span class="cnt">· ' + n + ' to hunt</span>';
-});
-rows.forEach(tr => tr.querySelector('.rank-main').onclick = () => tr.classList.toggle('open'));
-new Chart(document.getElementById('hist'), {
-  type: 'line',
-  data: { labels: {{ hist_labels|tojson }}, datasets: [{ label: 'Baseline DPS', data: {{ hist_values|tojson }}, borderColor: '#3b6fd4', tension: .2 }] },
-  options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#8b93a7' } }, x: { ticks: { color: '#8b93a7' } } } }
-});
+document.querySelectorAll('.rank-row .rank-main').forEach(m => m.onclick = () => m.closest('.rank-row').classList.toggle('open'));
 </script>
 {% endblock %}

@@ -6,6 +6,7 @@ runs simc, parses json2, stores results into Postgres via psycopg2-binary
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -67,6 +68,14 @@ def run_simc(run_id: str, profile: str) -> str:
     os.makedirs(WORK, exist_ok=True)
     input_path = os.path.join(WORK, f"{run_id}.simc")
     output_path = os.path.join(WORK, f"{run_id}.json")
+    # SimC cannot parse inline local_json={...} (it mangles the JSON into an
+    # armory spec -> "Invalid region"). Extract to a sidecar file instead.
+    m = re.search(r"^local_json=(\{.*\})\s*$", profile, re.M)
+    if m:
+        armory_path = os.path.join(WORK, f"{run_id}.armory.json")
+        with open(armory_path, "w") as f:
+            f.write(m.group(1))
+        profile = profile[:m.start()] + f"local_json={armory_path}\n" + profile[m.end():]
     with open(input_path, "w") as f:
         f.write(profile)
         f.write(f"\njson2={output_path}\n")

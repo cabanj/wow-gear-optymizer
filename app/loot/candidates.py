@@ -55,25 +55,31 @@ async def generate_candidates(
             if slot is None:
                 continue
 
-            # skip if identical item worn (unique-equipped / no point)
-            for wslot in (slot, "finger2" if slot == "finger1" else None,
-                          "trinket2" if slot == "trinket1" else None):
-                if wslot and worn_items.get(wslot, {}).get("item_id") == item_id:
-                    slot_skip = True
-                    break
-            else:
-                slot_skip = False
-            if slot_skip:
-                continue
+            # family slots that share loot (rings / trinkets come in pairs)
+            family = [slot]
+            if slot == "finger1":
+                family.append("finger2")
+            elif slot == "trinket1":
+                family.append("trinket2")
+            family_worn = [(worn_items.get(ws, {}).get("item_id"),
+                            worn_items.get(ws, {}).get("item_level") or 0)
+                           for ws in family]
+
+            def owned(item_id: int, ilvl: int) -> bool:
+                """Same item already worn at equal or higher ilvl — no point simming."""
+                return any(wid == item_id and (wil or 0) >= ilvl
+                           for wid, wil in family_worn)
 
             # prescreen: skip if base ilvl ladder max << worn item (configurable)
-            worn_ilvl = worn_items.get(slot, {}).get("item_level", 0)
+            worn_ilvl = max([wil for _, wil in family_worn] + [0])
             variants = []
             if enc_name and _is_raid_source(enc_id, encounter_ids) or True:
                 pass  # source determined below
 
             for diff in ("lfr", "normal", "heroic", "mythic"):
                 v = policy.raid_variant(item_id, diff)
+                if owned(item_id, v["item_level"]):
+                    continue
                 # keep only variants that beat or match worn ilvl (except trinkets/rings)
                 keep = v["item_level"] >= worn_ilvl or inv_type in ("TRINKET", "FINGER")
                 if worn_ilvl and not keep:
@@ -86,6 +92,8 @@ async def generate_candidates(
                 ))
             for variant in ("great_vault", "bonus_roll"):
                 v = policy.mplus_variant(item_id, variant)
+                if owned(item_id, v["item_level"]):
+                    continue
                 if v["item_level"] >= worn_ilvl or inv_type in ("TRINKET", "FINGER"):
                     variants.append(CandidateItem(
                         item_id=item_id, name=name, slot=slot,
@@ -93,6 +101,17 @@ async def generate_candidates(
                         source="mplus", difficulty="mythic", variant=variant,
                         boss_or_dungeon=enc_name, inventory_type=inv_type,
                     ))
+
+            # rings/trinkets: sim each candidate against BOTH worn slots
+            # (decision 2026-09-03: every trinket tried vs each equipped one)
+            if slot in ("finger1", "trinket1"):
+                twin = "finger2" if slot == "finger1" else "trinket2"
+                variants += [CandidateItem(
+                    item_id=v.item_id, name=v.name, slot=twin,
+                    item_level=v.item_level, bonus_ids=v.bonus_ids,
+                    source=v.source, difficulty=v.difficulty, variant=v.variant,
+                    boss_or_dungeon=v.boss_or_dungeon, inventory_type=v.inventory_type,
+                ) for v in list(variants)]
 
             # cap per slot by ilvl desc
             bucket = seen_slots.setdefault(slot, [])

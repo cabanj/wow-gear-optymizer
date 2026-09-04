@@ -53,15 +53,18 @@ async def run_full_simulation(
         seed_path = os.path.join("docs", "season-seed-midnight-s2.json")
     policy = TrackPolicy.load(seed_path)
 
-    # 3. worn items from snapshot
+    # 3. worn items from snapshot (keys normalized to canonical simc slots,
+    # e.g. FINGER_1 -> finger1 — candidates.py and the gem/enchant swap rely on it)
+    from ..simc.profile_builder import SLOT_MAP
     equipment = snapshot.raw.get("equipment", {})
     worn: dict[str, dict] = {}
     for item in equipment.get("equipped_items", []):
         slot = (item.get("slot") or {}).get("type", "")
+        canon = SLOT_MAP.get(slot, slot.lower())
         it = item.get("item", {})
         bonus_ids = [b for b in (it.get("bonus_ids") or []) if b != 6652]
         gems = [g.get("item", {}).get("id") for g in item.get("gems", []) if g.get("item")]
-        worn[slot] = {
+        worn[canon] = {
             "item_id": it.get("id"),
             "item_level": (it.get("level") or {}).get("value"),
             "bonus_ids": bonus_ids,

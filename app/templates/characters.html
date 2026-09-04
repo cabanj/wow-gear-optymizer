@@ -36,6 +36,9 @@
   </aside>
   <section class="char-detail">
   {% if current %}
+  {% if latest_report %}
+  <p><a class="btn" href="/reports/{{ latest_report.id }}">Latest report ({{ latest_report.finished_at }})</a></p>
+  {% endif %}
 {% macro socket_row(s) -%}
 {% if s.filled %}{% set gq = 'gem-uncommon' if s.gem_quality == 'uncommon' else ('q-' + s.gem_quality if s.gem_quality else '') %}<span class="pd-sub {{ gq }}">{% if s.gem_icon %}<img class="gem-icon" src="{{ s.gem_icon }}" alt="gem" width="18" height="18" loading="lazy">{% else %}◆{% endif %} {{ s.text }}</span>
 {%- else %}<span class="pd-sub empty-sock">○ {{ s.text }}</span>{% endif %}
