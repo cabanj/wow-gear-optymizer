@@ -45,6 +45,7 @@
 {%- endmacro %}
 {% macro gear_row(g) -%}
       <a class="gear-row" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
+        <span class="gear-ilvl">{{ g.ilvl }}</span>
         {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.name }}" width="56" height="56" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
         <span class="pd-info">
           <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
@@ -52,7 +53,6 @@
           {% for s in g.sockets %}{{ socket_row(s) }}{% endfor %}
         </span>
         <span class="gear-slotname">{{ g.slot_label }}</span>
-        <span class="gear-ilvl">{{ g.ilvl }}</span>
         <span class="tip">
           <span class="tip-name q-{{ g.quality }}">{{ g.name }}</span>
           <span class="tip-row">Item Level {{ g.ilvl }} · {{ g.slot_label }}</span>
@@ -62,7 +62,7 @@
           {% for st in g.stats %}<span class="tip-row {% if st.sec %}tip-sec{% else %}tip-stat{% endif %}">{{ st.text }}</span>{% endfor %}
           {% for ef in g.effects %}<span class="tip-row tip-effect">{{ ef }}</span>{% endfor %}
           {% if g.enchant %}<span class="tip-row tip-ench">{{ g.enchant }}</span>{% endif %}
-          {% for s in g.sockets %}{{ socket_tip(s) }}{% endfor %}
+          {% for s in g.sockets %}{% if not s.filled %}{{ socket_tip(s) }}{% endif %}{% endfor %}
           <span class="tip-row tip-hint">Click for Wowhead ↗</span>
         </span>
       </a>
