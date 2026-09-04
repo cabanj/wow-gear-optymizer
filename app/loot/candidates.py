@@ -268,9 +268,10 @@ async def generate_candidates(
                     combos.append((mhv["item_level"] + ohv["item_level"], mh_id, mh, mhv,
                                    oh_id, oh, ohv, _tier, diff, variant))
         combos.sort(key=lambda t: -t[0])
+        combo_items = []
         for _, mh_id, mh, mhv, oh_id, oh, ohv, tier, diff, variant in combos[:MAX_COMBOS]:
             src = "raid" if tier == "raid" else "mplus"
-            _add(CandidateItem(
+            combo_items.append(CandidateItem(
                 item_id=mh_id, name=f"{mh['name']} + {oh['name']}",
                 slot="main_hand",
                 item_level=max(mhv["item_level"], ohv["item_level"]),
@@ -283,12 +284,19 @@ async def generate_candidates(
                 off_ilvl=ohv["item_level"], off_bonus_ids=ohv["bonus_ids"],
                 off_boss=oh["boss"],
             ))
+        for c in combo_items:
+            _add(c)
 
-    # cap per slot by ilvl desc, keep boss/difficulty variety on ties
+    # cap per slot by ilvl desc, keep boss/difficulty variety on ties —
+    # combos bypass the cap (already capped globally at MAX_COMBOS)
+    combo_keys = {(c.item_id, c.item_level, c.slot) for c in combo_items} \
+        if onehanders and offhands else set()
     out: list[CandidateItem] = []
     for slot, cands in buckets.items():
         cands.sort(key=lambda c: (-c.item_level, c.boss_or_dungeon, c.source))
-        out.extend(cands[:max_per_slot])
+        fixed = [c for c in cands if (c.item_id, c.item_level, c.slot) in combo_keys]
+        rest = [c for c in cands if (c.item_id, c.item_level, c.slot) not in combo_keys]
+        out.extend(fixed + rest[:max_per_slot])
     out.sort(key=lambda c: -c.item_level)
     return out
 
