@@ -38,7 +38,7 @@
   {% if current %}
   {% if latest_reports %}
   <p class="report-links">
-  {% if latest_reports.raid %}<a class="btn" href="/reports/{{ latest_reports.raid.id }}">Raid report ({{ latest_reports.raid.finished_at }})</a>{% endif %}
+  {% if latest_reports.raid %}<a class="btn ghost" href="/reports/{{ latest_reports.raid.id }}">Raid report ({{ latest_reports.raid.finished_at }})</a>{% endif %}
   {% if latest_reports.mplus %}<a class="btn ghost" href="/reports/{{ latest_reports.mplus.id }}">Mythic+ report ({{ latest_reports.mplus.finished_at }})</a>{% endif %}
   </p>
   {% endif %}
