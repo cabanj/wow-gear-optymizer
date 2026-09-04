@@ -272,6 +272,7 @@ async def run_report(db: AsyncSession, run_id) -> dict:
             "stats": "",
             "dps_fmt": _fmt(r["dps"]), "median_fmt": _fmt(data["ranking"] and r.get("dps", 0)),
             "delta_fmt": _fmt(r["delta_dps"]), "pct_fmt": f"{r['delta_percent']:.2f}",
+            "err_pct": f"{(r['stddev'] / (data['baseline_dps'] or 1) * 100):.2f}",
             "std_fmt": _fmt(r["stddev"]), "iterations": r["iterations"],
             "within_error": r["within_error"],
             "bar_pct": round(r["delta_dps"] / max_delta * 100) if max_delta > 0 else 0,

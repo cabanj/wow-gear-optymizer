@@ -5,8 +5,10 @@
 <div id="addsection" {% if characters %}style="display:none"{% endif %}>
 <p class="meta">Useful when Blizzard's character list comes back empty. Needs realm + exact name.</p>
 <form class="row" id="add-form">
-  <input type="text" id="add-realm" placeholder="realm slug, e.g. shadowsong" required>
-  <input type="text" id="add-name" placeholder="character name" required>
+  <label class="sr-only" for="add-realm">Realm slug</label>
+  <input type="text" id="add-realm" placeholder="realm slug, e.g. shadowsong" required autocomplete="off">
+  <label class="sr-only" for="add-name">Character name</label>
+  <input type="text" id="add-name" placeholder="character name" required autocomplete="off">
   <button class="btn" type="submit">Add + snapshot</button>
   <span class="meta" id="add-msg"></span>
 </form>
@@ -22,7 +24,7 @@
     {% for c in characters %}
     <div class="menu-item{% if current and c.id == current.id %} active{% endif %}">
       <input type="checkbox" class="sim-check" data-id="{{ c.id }}" {% if c.selected %}checked{% endif %}
-        title="Include in daily simulations" onclick="event.stopPropagation()">
+        aria-label="Include {{ c.name }} in daily simulations" title="Include in daily simulations" onclick="event.stopPropagation()">
       <a href="/characters?character_id={{ c.id }}">
         <span class="nm" style="color:{{ c.class_color }}">{{ c.name }}</span>
         <span class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }}</span>
@@ -33,13 +35,14 @@
     {% if not characters %}<p class="meta">No characters yet.</p>{% endif %}
   </aside>
   <section class="char-detail">
-    {% if current %}
+  {% if current %}
+  <p class="meta">Showing gear for <strong>{{ current.name }}</strong></p>
     {% if gear_left %}
     <h3>Armor</h3>
     <div class="gear-list">
       {% for g in gear_left %}
       <a class="gear-row" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
-        {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.slot_label }}" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
+        {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.name }}" width="56" height="56" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
         <span class="pd-info">
           <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
           {% if g.enchant %}<span class="pd-sub">✦ {{ g.enchant }}</span>{% endif %}
@@ -68,7 +71,7 @@
     <div class="gear-list">
       {% for g in gear_right %}
       <a class="gear-row" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
-        {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.slot_label }}" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
+        {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.name }}" width="56" height="56" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
         <span class="pd-info">
           <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>
           {% if g.enchant %}<span class="pd-sub">✦ {{ g.enchant }}</span>{% endif %}

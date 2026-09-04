@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>{{ character.name }} <span class="meta">{{ character.realm }} · {{ character.spec }} · ilvl {{ character.item_level or '?' }}</span></h1>
-<p class="meta">Snapshot: {{ snapshot_time }} ({{ snapshot_source }}) ·
-SimC {{ simc_version or '?' }} · WoW {{ wow_build or '?' }} · {{ content_version or '' }}</p>
+<p class="meta report-meta">Snapshot: {{ snapshot_time }} ({{ snapshot_source }}) ·
+<details><summary>build info</summary>SimC {{ simc_version or '?' }} · WoW {{ wow_build or '?' }} · {{ content_version or '' }}</details></p>
 {% if warning %}<p class="warn">⚠ {{ warning }}</p>{% endif %}
 
 <div class="summary">
@@ -16,7 +16,7 @@ SimC {{ simc_version or '?' }} · WoW {{ wow_build or '?' }} · {{ content_versi
   <button class="on" data-f="all">All</button>
   <button data-f="raid">Raid</button>
   <button data-f="mplus">Mythic+</button>
-  <button id="groupbtn" title="toggle">Group by boss: off</button>
+  <button id="groupbtn" aria-pressed="false" title="toggle grouping">Grouped: off</button>
 </div>
 <div class="chips" id="slotchips">
   <button class="on" data-s="all">All slots</button>
@@ -36,7 +36,7 @@ SimC {{ simc_version or '?' }} · WoW {{ wow_build or '?' }} · {{ content_versi
     </div>
     <div class="rank-delta">
       <div class="d up">+{{ r.delta_fmt }}</div>
-      <div class="up">+{{ r.pct_fmt }}%{% if r.within_error %} <span class="warn" title="within 2 stddev">±</span>{% endif %}</div>
+      <div class="up">+{{ r.pct_fmt }}%{% if r.within_error %} <span class="warn" title="gain within 2× stddev of simulation error">±{{ r.err_pct }}%</span>{% endif %}</div>
       <div class="meta">{{ r.dps_fmt }}</div>
     </div>
   </div>
@@ -72,7 +72,8 @@ document.querySelectorAll('#slotchips button').forEach(b => b.onclick = () => {
 });
 document.getElementById('groupbtn').onclick = (e) => {
   grouped = !grouped;
-  e.target.textContent = 'Group by boss: ' + (grouped ? 'on' : 'off');
+  e.target.textContent = 'Grouped: ' + (grouped ? 'on' : 'off');
+  e.target.setAttribute('aria-pressed', grouped);
   apply();
 };
 function apply() {
