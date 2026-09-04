@@ -160,10 +160,20 @@ def fail_run(conn, run_id: str, error_msg: str) -> None:
         """, (error_msg[:4000], run_id))
 
 
+def requeue_stale(conn) -> None:
+    """After a restart, any in-flight run's simc process is dead — mark failed."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE simulation_runs SET status='failed', error='worker restarted', "
+            "finished_at=now() WHERE status='running'"
+        )
+
+
 def main():
     conn = get_conn()
     conn.autocommit = False
     ver = detect_simc_version()
+    requeue_stale(conn)
     print("simulator worker started; simc:", ver, flush=True)
     while True:
         run = claim_run(conn)
