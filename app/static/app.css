@@ -159,8 +159,8 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 .gear-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; align-items: start; }
 .gear-cols h3:first-child { margin-top: 0; }
 .gear-ench { color: var(--up); }
-.gem-icon { width: .85rem; height: .85rem; border-radius: .2rem; vertical-align: -0.12rem;
-  margin-right: .2rem; }
+.gear-row img.gem-icon { width: .85rem; height: .85rem; border-radius: .2rem;
+  vertical-align: -0.12rem; margin-right: .2rem; border: 0; }
 .gem-uncommon { color: #ffd83d; }
 .pd-sub.q-epic, .tip-row.q-epic { color: var(--epic); }
 .pd-sub.q-rare, .tip-row.q-rare { color: var(--rare); }
