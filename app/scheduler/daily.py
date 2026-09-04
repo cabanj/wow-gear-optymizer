@@ -32,11 +32,12 @@ def create_scheduler(engine) -> AsyncIOScheduler:
 async def daily_report(engine) -> None:
     """Full pipeline: snapshot → sim runs for all selected characters."""
     from ..characters.service import snapshot_character
-    from ..reports.service import run_full_simulation
+    from ..reports.service import purge_old_data, run_full_simulation
     from sqlalchemy.ext.asyncio import async_sessionmaker
 
     Session = async_sessionmaker(engine, expire_on_commit=False)
     async with Session() as db:
+        await purge_old_data(db, days=3)
         chars = (await db.execute(
             select(Character).join(BlizzardAccount).where(Character.selected.is_(True))
         )).scalars().all()

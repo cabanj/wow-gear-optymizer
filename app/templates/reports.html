@@ -7,8 +7,8 @@
 <div class="cards">
 {% for r in runs %}
   <a class="char-card" href="/reports/{{ r.id }}">
-    <div class="nm">{{ r.character_name }}</div>
-    <div class="sub">{{ r.profile_type }} · {{ r.created_at }}</div>
+    <div class="nm">{{ r.character_name }} · {{ "Raid" if r.profile_type == "raid" else "Mythic+" if r.profile_type == "mplus" else r.profile_type }}</div>
+    <div class="sub">{{ r.created_at }}</div>
     <div>Baseline <span class="big">{{ r.baseline }}</span> DPS</div>
     {% if r.best %}<div>Best: <span class="up">+{{ r.best.pct }}%</span>
       <span class="meta">{{ r.best.name }} (+{{ r.best.dps }})</span></div>{% endif %}

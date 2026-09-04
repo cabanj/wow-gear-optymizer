@@ -37,6 +37,10 @@ class Candidate:
     boss_or_dungeon: str = ""
     upgrade_track: str | None = None
     tier: bool = False
+    pset: str = ""       # profileset name override (combos)
+    off_item_id: int = 0
+    off_bonus_ids: list[int] = field(default_factory=list)
+    off_ilevel: int = 0
 
 
 def _item_line(candidate: Candidate) -> str:
@@ -49,7 +53,16 @@ def _item_line(candidate: Candidate) -> str:
         parts.append(f"gem_id={g}")
     if candidate.item_level:
         parts.append(f"ilevel={candidate.item_level}")
-    return ",".join(parts)
+    line = ",".join(parts)
+    if candidate.off_item_id:
+        # 1H + off-hand combo replaces both slots at once
+        ob = [f"id={candidate.off_item_id}"]
+        if candidate.off_bonus_ids:
+            ob.append("bonus_id=" + "/".join(str(b) for b in candidate.off_bonus_ids))
+        if candidate.off_ilevel:
+            ob.append(f"ilevel={candidate.off_ilevel}")
+        line += ",off_hand=" + ",".join(ob)
+    return line
 
 
 def build_baseline(snapshot_raw: dict, fallback_realm: str = "",
@@ -109,8 +122,8 @@ def build_profileset_input(
     lines.append(build_baseline(snapshot_raw, fallback_realm, fallback_name))
     lines.append("")
     for c in candidates:
-        name = f"{c.source}_{c.item_id}_{c.slot}"
-        if c.replace_slot and c.replace_slot != c.slot:
+        name = c.pset or f"{c.source}_{c.item_id}_{c.slot}"
+        if not c.pset and c.replace_slot and c.replace_slot != c.slot:
             name += f"_replaces_{c.replace_slot}"
         lines.append(f'profileset."{name}"={_item_line(c)}')
         lines.append("")

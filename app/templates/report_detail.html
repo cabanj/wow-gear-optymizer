@@ -34,6 +34,9 @@
 <details><summary>build info</summary>SimC {{ simc_version or '?' }} · WoW {{ wow_build or '?' }} · {{ content_version or '' }}</details></p>
 {% if warning %}<p class="warn">⚠ {{ warning }}</p>{% endif %}
 
+<div class="meta report-meta">Fight: <strong>{{ fight.kind }}</strong> ({{ fight.style }}, {{ fight.duration }}s, {{ fight.iterations }} iterations) · <a href="{{ fight.wiki }}" target="_blank" rel="noopener">fight style docs ↗</a></div>
+<div class="meta report-meta">Talents simmed: <strong>{{ talents.spec }}{% if talents.hero %} ({{ talents.hero }}){% endif %}</strong>{% if talents.code %} · <details><summary>loadout code</summary><code>{{ talents.code }}</code></details>{% endif %} · <a href="{{ talents.armory_url }}" target="_blank" rel="noopener">armory ↗</a></div>
+
 <h2>Top 3 upgrades</h2>
 <div id="top3">
 {% for r in top3 %}{{ rank_row(r) }}{% endfor %}

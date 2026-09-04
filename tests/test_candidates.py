@@ -21,12 +21,18 @@ def test_slot_from_inv():
     assert _slot_from_inv("Ranged Rifle") == "main_hand"
 
 
-def test_class_allows_armor_and_weapon():
+def test_class_allows_armor_weapon_offhand():
     cloth = {"item_class": {"name": "Armor"}, "item_subclass": {"name": "Cloth"}}
     leather = {"item_class": {"name": "Armor"}, "item_subclass": {"name": "Leather"}}
     trink = {"item_class": {"name": "Armor"}, "item_subclass": {"name": "Miscellaneous"}}
     staff = {"item_class": {"name": "Weapon"}, "item_subclass": {"name": "Staff"}}
     axe = {"item_class": {"name": "Weapon"}, "item_subclass": {"name": "Two-Handed Axe"}}
+    dagger = {"item_class": {"name": "Weapon"}, "item_subclass": {"name": "Dagger"},
+              "inventory_type": {"name": "One-Hand"}}
+    lamp = {"item_class": {"name": "Armor"}, "item_subclass": {"name": "Miscellaneous"},
+            "inventory_type": {"name": "Held In Off-hand"}}
+    shield = {"item_class": {"name": "Armor"}, "item_subclass": {"name": "Shields"},
+              "inventory_type": {"name": "Off Hand"}}
     assert _class_allows(cloth, "Warlock")
     assert not _class_allows(leather, "Warlock")
     assert _class_allows(trink, "Warlock")
@@ -34,6 +40,10 @@ def test_class_allows_armor_and_weapon():
     assert not _class_allows(axe, "Warlock")
     assert _class_allows(axe, "Warrior")
     assert not _class_allows(staff, "Rogue")
+    assert _class_allows(dagger, "Warlock")
+    assert _class_allows(lamp, "Warlock")
+    assert not _class_allows(shield, "Warlock")
+    assert _class_allows(shield, "Paladin")
 
 
 # --- integration: candidate generation via monkeypatched discovery ---

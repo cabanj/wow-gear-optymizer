@@ -55,13 +55,13 @@ CLASS_ARMOR = {
 ARMOR_MISC = ("Miscellaneous",)
 
 # Weapon subclasses (item_class=Weapon) each class may hold.
-# Cloth casters are 2H-staff (midnight build): restrict to Staff so we never
-# offer a 1H dagger that would need an off-hand and break the gear swap.
+# Cloth casters sim staff baseline; 1H options exist so staff can be
+# challenged by a 1H + off-hand combo (see combo generation below).
 CLASS_WEAPONS = {
-    "Warlock": ("Staff",),
-    "Mage": ("Staff",),
-    "Priest": ("Staff",),
-    "Evoker": ("Staff",),
+    "Warlock": ("Staff", "Dagger", "One-Handed Sword"),
+    "Mage": ("Staff", "Dagger", "One-Handed Sword"),
+    "Priest": ("Staff", "Dagger", "One-Handed Sword"),
+    "Evoker": ("Staff", "Dagger", "One-Handed Sword"),
     "Rogue": ("Dagger", "One-Handed Sword", "One-Handed Axe", "Fist", "Warglaives"),
     "Monk": ("Staff", "", "One-Handed Sword", "One-Handed Axe", "Fist"),
     "Druid": ("Staff", "Dagger", "One-Handed Sword", "One-Handed Mace", "Fist", "Polearm"),
@@ -93,6 +93,27 @@ class CandidateItem:
     variant: str | None  # None | great_vault | bonus_roll
     boss_or_dungeon: str
     inventory_type: str
+    pset: str = ""       # profileset name (must match builder output)
+    # weapon combo (1H + off-hand): second item, main fields describe the 1H
+    off_item_id: int = 0
+    off_name: str = ""
+    off_ilvl: int = 0
+    off_bonus_ids: list[int] | None = None
+    off_boss: str = ""
+
+    def __post_init__(self):
+        if not self.pset:
+            self.pset = f"{self.source}_{self.item_id}_{self.slot}"
+        if self.off_bonus_ids is None:
+            self.off_bonus_ids = []
+
+
+# Classes that can use a caster-type off-hand (no dual-wield rules involved).
+OH_CLASSES = {"Warlock", "Mage", "Priest", "Evoker", "Druid", "Shaman", "Paladin"}
+SHIELD_CLASSES = {"Paladin", "Shaman", "Warrior"}
+
+# max 1H+OH combos per character (cartesian 1H x OH, top ilvl sums win)
+MAX_COMBOS = 6
 
 
 async def _meta_for(db: AsyncSession, item_id: int) -> dict:
@@ -106,6 +127,11 @@ def _class_allows(meta: dict, class_name: str) -> bool:
     """Can this character class equip this item? (armor type / weapon subclass)"""
     ic = (meta.get("item_class") or {}).get("name", "")
     isc = (meta.get("item_subclass") or {}).get("name", "")
+    inv = (meta.get("inventory_type") or {}).get("name", "")
+    if _is_offhand_inv(inv):
+        if isc in ("Shield", "Shields"):
+            return class_name in SHIELD_CLASSES
+        return class_name in OH_CLASSES
     if ic == "Armor":
         allowed = CLASS_ARMOR.get(class_name, ())
         return isc in allowed or isc in ARMOR_MISC
@@ -113,6 +139,12 @@ def _class_allows(meta: dict, class_name: str) -> bool:
         allowed = CLASS_WEAPONS.get(class_name, DEFAULT_WEAPONS)
         return isc in allowed
     return False
+
+
+def _is_offhand_inv(inv: str) -> bool:
+    key = (inv or "").replace("_", " ").replace("-", " ").strip().lower()
+    key = " ".join(key.split())
+    return key.startswith("off hand") or key in ("holdable", "held in off hand")
 
 
 async def generate_candidates(
@@ -131,6 +163,8 @@ async def generate_candidates(
     """
     buckets: dict[str, list[CandidateItem]] = {}
     seen: set[tuple[int, int, str]] = set()
+    onehanders: dict[int, dict] = {}  # item_id -> {name, boss} for 1H weapons
+    offhands: dict[int, dict] = {}    # item_id -> {name, boss} for off-hands
 
     def _add(c: CandidateItem) -> None:
         key = (c.item_id, c.item_level, c.slot)
@@ -138,6 +172,13 @@ async def generate_candidates(
             return
         seen.add(key)
         buckets.setdefault(c.slot, []).append(c)
+
+    def _is_onehand(imeta: dict) -> bool:
+        if (imeta.get("item_class") or {}).get("name") != "Weapon":
+            return False
+        inv = (imeta.get("inventory_type") or {}).get("name", "")
+        key = " ".join(inv.replace("_", " ").replace("-", " ").split()).lower()
+        return key.startswith(("one hand", "main hand"))
 
     for enc_id, enc_name in encounter_ids.items():
         items = await encounter_items(db, enc_id)
@@ -150,6 +191,16 @@ async def generate_candidates(
             slot = _slot_from_inv(inv_type)
             if slot is None:
                 continue
+
+            # pool 1H weapons + off-hands for combo generation (no lone 1H
+            # candidates: a 1H without off-hand is never a real setup)
+            if _is_onehand(imeta):
+                onehanders[item_id] = {"name": name, "boss": enc_name}
+                if not worn_items.get("off_hand", {}).get("item_id"):
+                    continue  # combos only; lone 1H needs a worn off-hand
+            elif _is_offhand_inv(inv_type):
+                offhands[item_id] = {"name": name, "boss": enc_name}
+                continue  # off-hands only ever sim as part of a combo
 
             # pairs: trinket items are tried against both worn trinket slots
             family = [slot]
@@ -195,6 +246,43 @@ async def generate_candidates(
                         variant=v["variant"], boss_or_dungeon=enc_name,
                         inventory_type=inv_type,
                     ))
+
+    # 1H + off-hand combos (staff challengers): same-tier pairs only,
+    # top ilvl sums win, capped — a cartesian of everything would explode sims
+    worn_mh = worn_items.get("main_hand", {})
+    worn_oh = worn_items.get("off_hand", {})
+    if onehanders and offhands:
+        combos = []
+        for mh_id, mh in onehanders.items():
+            for oh_id, oh in offhands.items():
+                for _tier, diff, variant in (
+                        ("raid", "mythic", None),
+                        ("vault", "mythic", "great_vault")):
+                    mhv = policy.raid_variant(mh_id, "mythic") if _tier == "raid" \
+                        else policy.mplus_variant(mh_id, "great_vault")
+                    ohv = policy.raid_variant(oh_id, "mythic") if _tier == "raid" \
+                        else policy.mplus_variant(oh_id, "great_vault")
+                    if (worn_mh.get("item_id") == mh_id and (worn_mh.get("item_level") or 0) >= mhv["item_level"]
+                            and worn_oh.get("item_id") == oh_id and (worn_oh.get("item_level") or 0) >= ohv["item_level"]):
+                        continue  # exact combo already worn
+                    combos.append((mhv["item_level"] + ohv["item_level"], mh_id, mh, mhv,
+                                   oh_id, oh, ohv, _tier, diff, variant))
+        combos.sort(key=lambda t: -t[0])
+        for _, mh_id, mh, mhv, oh_id, oh, ohv, tier, diff, variant in combos[:MAX_COMBOS]:
+            src = "raid" if tier == "raid" else "mplus"
+            _add(CandidateItem(
+                item_id=mh_id, name=f"{mh['name']} + {oh['name']}",
+                slot="main_hand",
+                item_level=max(mhv["item_level"], ohv["item_level"]),
+                bonus_ids=mhv["bonus_ids"], source=src, difficulty=diff,
+                variant=variant,
+                boss_or_dungeon=f"{mh['boss']} / {oh['boss']}",
+                inventory_type="Two-Hand",
+                pset=f"{src}_combo_{mh_id}x{oh_id}_main_hand",
+                off_item_id=oh_id, off_name=oh["name"],
+                off_ilvl=ohv["item_level"], off_bonus_ids=ohv["bonus_ids"],
+                off_boss=oh["boss"],
+            ))
 
     # cap per slot by ilvl desc, keep boss/difficulty variety on ties
     out: list[CandidateItem] = []

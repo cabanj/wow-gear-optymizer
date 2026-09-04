@@ -38,6 +38,11 @@ def _ctx():
                      "boss": "The Lost Explorers", "ilvl": 334},
             "top3": rows[:2], "rows": rows,
             "slots": [("head", "Head"), ("wrist", "Wrist")],
+            "fight": {"style": "Patchwerk", "kind": "Single Target",
+                      "duration": 300, "iterations": 1000, "target_error": 0.05,
+                      "wiki": "https://example.invalid/wiki"},
+            "talents": {"spec": "Demonology", "hero": "Diabolist",
+                        "code": "CODE", "armory_url": "https://example.invalid/armory"},
             "warning": None}
 
 

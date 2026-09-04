@@ -277,6 +277,27 @@ async def run_report(db: AsyncSession, run_id) -> dict:
 
     rows = []
     max_delta = max([r["delta_dps"] for r in data["ranking"]] + [1])
+    # talents simmed: active spec loadout from this run's snapshot (armory=
+    # imports exactly these into SimC)
+    talents = _snapshot_talents(snap)
+    try:
+        from ..config import get_settings as _gs
+        _region = (_gs().blizzard_region or "eu").lower()
+    except Exception:
+        _region = "eu"
+    talents["armory_url"] = (
+        f"https://worldofwarcraft.blizzard.com/en-gb/character/"
+        f"{_region}/{char.realm_slug}/{char.name}")
+    # fight profile display
+    style = (cfg.get("fight_style") or "")
+    kind = ("Single Target" if style.lower() in ("patchwerk", "castingpatchwerk")
+            else "AoE (dungeon slice)" if style.lower() == "dungeonslice"
+            else style or "?")
+    fight = {"style": style or "?", "kind": kind,
+             "duration": cfg.get("duration") or cfg.get("max_time") or "?",
+             "iterations": cfg.get("iterations") or "?",
+             "target_error": cfg.get("target_error") or "?",
+             "wiki": "https://github.com/simulationcraft/simc/wiki/RaidEvents"}
     # worn items from THIS run's snapshot (historically accurate replaces info)
     from ..simc.profile_builder import SLOT_MAP
     worn_map: dict[str, dict] = {}
@@ -304,7 +325,8 @@ async def run_report(db: AsyncSession, run_id) -> dict:
                             if r["name"].startswith("mplus")
                             else ("Raid " + (c.get("difficulty") or "")).strip(),
             "boss": boss,
-            "ilvl": c.get("item_level") or "?",
+            "ilvl": (f"{c.get('item_level')} / {c.get('off_ilvl')}"
+                     if c.get("off_item_id") else c.get("item_level")) or "?",
             "bonus_ids": "/".join(map(str, c.get("bonus_ids") or [])) or "—",
             "replaces": worn.get(slot, rep.get("name", "?")),
             "replaces_item_id": rep.get("item_id", 0),
@@ -336,7 +358,27 @@ async def run_report(db: AsyncSession, run_id) -> dict:
         "top3": rows[:3],
         "rows": rows,
         "slots": sorted({(row["slot"], row["slot_label"]) for row in rows}),
+        "fight": fight,
+        "talents": talents,
     }
+
+
+def _snapshot_talents(snap) -> dict:
+    """Active spec + hero tree + loadout code from an armory snapshot."""
+    specs = ((snap.raw or {}).get("specializations") or {})
+    out = {"spec": "?", "hero": "", "code": "", "armory_url": ""}
+    for s in specs.get("specializations", []) or []:
+        if (s.get("specialization") or {}).get("name"):
+            for lo in s.get("loadouts") or []:
+                if lo.get("is_active"):
+                    out["spec"] = (s.get("specialization") or {}).get("name", "?")
+                    hero = lo.get("selected_hero_talents") or {}
+                    out["hero"] = hero.get("name") if isinstance(hero, dict) else ""
+                    if not out["hero"]:
+                        ht = specs.get("active_hero_talent_tree") or {}
+                        out["hero"] = ht.get("name", "")
+                    out["code"] = lo.get("talent_loadout_code") or ""
+    return out
 
 
 async def latest_run(db: AsyncSession, character_id) -> dict | None:

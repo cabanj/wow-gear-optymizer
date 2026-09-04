@@ -1,7 +1,7 @@
 """Orchestration: character snapshot → candidates → simulation runs → report data."""
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +26,9 @@ def _to_builder_candidate(c: CandidateItem, worn: dict) -> Candidate:
         replace_slot=c.slot,
         source=c.source, boss_or_dungeon=c.boss_or_dungeon,
         upgrade_track=c.difficulty,
+        pset=c.pset,
+        off_item_id=c.off_item_id, off_bonus_ids=c.off_bonus_ids or [],
+        off_ilevel=c.off_ilvl,
     )
 
 
@@ -100,13 +103,15 @@ async def run_full_simulation(
         character_id=character.id, snapshot_id=snapshot.id,
         simulation_config={**sim_config, "profile_type": profile_type,
                            "candidates": [
-                               {"profileset": f"{c.source}_{c.item_id}_{c.slot}",
+                               {"profileset": c.pset or f"{c.source}_{c.item_id}_{c.slot}",
                                 "item_id": c.item_id, "name": c.name, "slot": c.slot,
                                 "item_level": c.item_level,
                                 "bonus_ids": c.bonus_ids, "source": c.source,
                                 "difficulty": c.difficulty, "variant": c.variant,
                                 "boss_or_dungeon": c.boss_or_dungeon,
-                                "inventory_type": c.inventory_type}
+                                "inventory_type": c.inventory_type,
+                                "off_item_id": c.off_item_id, "off_name": c.off_name,
+                                "off_ilvl": c.off_ilvl}
                                for c in candidates
                            ]},
         profile=profile, status="pending",
@@ -115,6 +120,38 @@ async def run_full_simulation(
     db.add(run)
     await db.commit()
     return run.id
+
+
+async def purge_old_data(db: AsyncSession, days: int = 3) -> dict:
+    """Keep only recent history: delete reports/runs/results older than `days`.
+
+    Order matters (reports reference runs via FK): reports → results → runs.
+    """
+    from datetime import datetime, timezone
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    rep = await db.execute(select(Report).where(Report.generated_at < cutoff))
+    n_rep = 0
+    for r in rep.scalars().all():
+        await db.delete(r)
+        n_rep += 1
+    res = await db.execute(
+        select(SimulationResult).join(SimulationRun)
+        .where(SimulationRun.finished_at < cutoff))
+    n_res = 0
+    for row in res.scalars().all():
+        await db.delete(row)
+        n_res += 1
+    runs = await db.execute(
+        select(SimulationRun)
+        .where(SimulationRun.finished_at < cutoff,
+               SimulationRun.status.in_(("completed", "failed"))))
+    n_runs = 0
+    for row in runs.scalars().all():
+        # never orphan a report: reports were deleted above if old enough
+        await db.delete(row)
+        n_runs += 1
+    await db.commit()
+    return {"reports": n_rep, "results": n_res, "runs": n_runs}
 
 
 async def build_report_data(db: AsyncSession, run_id: uuid.UUID) -> dict:
@@ -133,6 +170,10 @@ async def build_report_data(db: AsyncSession, run_id: uuid.UUID) -> dict:
         error=(r.confidence_interval or {}).get("error"),
     ) for r in results]
     ranking = compute_ranking(prs)
+    # report shows actual upgrades only — downgrades/sidegrades are noise
+    ranking = [r for r in ranking if r["delta_dps"] > 0]
+    for i, row in enumerate(ranking, 1):
+        row["rank"] = i
     return {
         "run_id": str(run_id),
         "simc_version": run.simc_version,
