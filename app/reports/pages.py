@@ -425,6 +425,7 @@ async def list_runs(db: AsyncSession, user_id, character_id=None) -> list[dict]:
         out.append({
             "id": str(run.id), "character_name": char.name,
             "profile_type": (run.simulation_config or {}).get("profile_type", "?"),
+            "fight_style": (run.simulation_config or {}).get("fight_style", "?"),
             "created_at": (run.finished_at or run.created_at).strftime("%Y-%m-%d %H:%M"),
             "baseline": _fmt(base or 0), "best": best,
             "simc_version": run.simc_version, "content_version": run.content_version,

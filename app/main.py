@@ -191,14 +191,26 @@ async def reports_page(request: Request, character_id: str | None = None,
                        db: AsyncSession = Depends(get_db)):
     if user is None:
         return RedirectResponse("/")
-    from .reports.pages import list_runs
+    from .reports.pages import CLASS_COLORS, list_runs
     runs = await list_runs(db, user.id, character_id)
+    chars = (await db.execute(
+        select(Character).join(BlizzardAccount).where(BlizzardAccount.user_id == user.id)
+    )).scalars().all()
+    for c in chars:
+        c.class_color = CLASS_COLORS.get(c.class_name or "", "#e8e6e3")
     char = None
     if character_id:
         char = (await db.execute(
             select(Character).where(Character.id == character_id))).scalar_one_or_none()
+    if char is None and chars:
+        char = next((c for c in chars if c.selected), chars[0])
+        runs = await list_runs(db, user.id, str(char.id))
+    raid_runs = [r for r in runs if r["profile_type"] == "raid"]
+    mplus_runs = [r for r in runs if r["profile_type"] == "mplus"]
     return templates.TemplateResponse(request, "reports.html",
-                                       {"user": user, "runs": runs, "character": char})
+                                       {"user": user, "characters": chars,
+                                        "character": char, "current_id": str(char.id) if char else "",
+                                        "raid_runs": raid_runs, "mplus_runs": mplus_runs})
 
 
 @app.get("/reports/{run_id}", response_class=HTMLResponse)

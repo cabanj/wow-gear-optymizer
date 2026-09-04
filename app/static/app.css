@@ -219,6 +219,12 @@ input[type=text] { padding: .5rem .7rem; background: #0a0c10; color: var(--text)
 table { border-collapse: collapse; width: 100%; font-size: .85rem; }
 th, td { border: 1px solid var(--border); padding: .4rem .6rem; text-align: left; }
 th { background: var(--panel2); }
+/* reports archive */
+table.runs { margin: .2rem 0 1rem; }
+table.runs td a { color: var(--text); }
+table.runs tr.latest td { background: #0f2318; }
+table.runs tr.latest td:first-child { box-shadow: inset 3px 0 0 var(--up); }
+.fresh { color: var(--up); font-size: .72rem; font-weight: 700; }
 @media (max-width: 700px) {
   main { padding: .8rem .6rem 2.5rem; }
   .rank-main { grid-template-columns: 2rem 1fr auto; }

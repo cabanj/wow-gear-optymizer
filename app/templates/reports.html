@@ -1,19 +1,48 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Reports{% if character %} — {{ character.name }}{% endif %}</h1>
-{% if not runs %}
-<div class="empty"><p>No completed simulations yet.</p></div>
+{% macro runs_table(runs, kind) -%}
+{% if runs %}
+<table class="runs">
+  <thead><tr><th>Simulated</th><th class="num">Baseline</th><th>Best upgrade</th><th class="num">Gain</th><th>SimC</th></tr></thead>
+  <tbody>
+  {% for r in runs %}
+  <tr{% if loop.first %} class="latest"{% endif %}>
+    <td><a href="/reports/{{ r.id }}">{{ r.created_at }}</a>{% if loop.first %} <span class="fresh">latest</span>{% endif %}</td>
+    <td class="num">{{ r.baseline }}</td>
+    <td>{% if r.best %}{{ r.best.name }} <span class="up">+{{ r.best.pct }}%</span>{% else %}—{% endif %}</td>
+    <td class="num up">{% if r.best %}+{{ r.best.dps }}{% else %}—{% endif %}</td>
+    <td class="meta">{{ r.simc_version or '?' }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty"><p>No {{ kind }} simulations for {{ character.name if character else 'this character' }} yet.</p></div>
 {% endif %}
-<div class="cards">
-{% for r in runs %}
-  <a class="char-card" href="/reports/{{ r.id }}">
-    <div class="nm">{{ r.character_name }} · {{ "Raid" if r.profile_type == "raid" else "Mythic+" if r.profile_type == "mplus" else r.profile_type }}</div>
-    <div class="sub">{{ r.created_at }}</div>
-    <div>Baseline <span class="big">{{ r.baseline }}</span> DPS</div>
-    {% if r.best %}<div>Best: <span class="up">+{{ r.best.pct }}%</span>
-      <span class="meta">{{ r.best.name }} (+{{ r.best.dps }})</span></div>{% endif %}
-    <div class="meta">SimC {{ r.simc_version or '?' }} · {{ r.content_version or '' }}</div>
-  </a>
-{% endfor %}
+{%- endmacro %}
+<h1>Reports{% if character %} — <span style="color:{{ character.class_color }}">{{ character.name }}</span>{% endif %}</h1>
+<div class="char-layout">
+  <aside class="char-menu">
+    {% for c in characters %}
+    <a class="menu-item{% if c.id|string == current_id %} active{% endif %}" href="/reports?character_id={{ c.id }}">
+      <span class="dot" style="background:{{ c.class_color }}"></span>
+      <span class="who">
+        <span class="nm" style="color:{{ c.class_color }}">{{ c.name }}</span>
+        <span class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }}</span>
+      </span>
+    </a>
+    {% endfor %}
+    {% if not characters %}<p class="meta">No characters yet.</p>{% endif %}
+  </aside>
+  <section class="char-detail">
+    {% if character %}
+    <h3>Raid — Single Target</h3>
+    {{ runs_table(raid_runs, 'raid') }}
+    <h3>Mythic+ — AoE</h3>
+    {{ runs_table(mplus_runs, 'mythic+') }}
+    {% else %}
+    <div class="empty"><p>Select a character from the menu.</p></div>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}
