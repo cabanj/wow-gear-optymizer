@@ -71,8 +71,11 @@ def test_characters_latest_report_link():
         user={"battletag": "T#1"}, characters=[c], current=c,
         gear_left=[], gear_right=[], sections=[], armor_rows=[], weapon_rows=[],
         latest_report={"id": "abc", "finished_at": "2026-09-04 10:05",
-                       "profile_type": "raid"})
+                       "profile_type": "raid"},
+        latest_reports={"raid": {"id": "abc", "finished_at": "2026-09-04 10:05",
+                                 "profile_type": "raid"}})
     assert "/reports/abc" in html
+    assert "Raid report" in html
     assert "Showing gear" not in html
 
 

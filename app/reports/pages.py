@@ -390,15 +390,24 @@ def _snapshot_talents(snap) -> dict:
 
 async def latest_run(db: AsyncSession, character_id) -> dict | None:
     """Newest completed simulation run for a character (for the report link)."""
-    run = (await db.execute(select(SimulationRun)
-                            .where(SimulationRun.character_id == character_id,
-                                   SimulationRun.status == "completed")
-                            .order_by(SimulationRun.finished_at.desc()))).scalars().first()
-    if run is None:
-        return None
-    return {"id": str(run.id),
-            "finished_at": (run.finished_at or run.created_at).strftime("%Y-%m-%d %H:%M"),
-            "profile_type": (run.simulation_config or {}).get("profile_type", "?")}
+    runs = await latest_runs(db, character_id)
+    return runs.get("raid") or runs.get("mplus")
+
+
+async def latest_runs(db: AsyncSession, character_id) -> dict[str, dict]:
+    """Newest completed run per profile type (raid / mplus)."""
+    out: dict[str, dict] = {}
+    for ptype in ("raid", "mplus"):
+        run = (await db.execute(select(SimulationRun)
+                                .where(SimulationRun.character_id == character_id,
+                                       SimulationRun.status == "completed",
+                                       SimulationRun.simulation_config["profile_type"].astext == ptype)
+                                .order_by(SimulationRun.finished_at.desc()))).scalars().first()
+        if run is not None:
+            out[ptype] = {"id": str(run.id),
+                          "finished_at": (run.finished_at or run.created_at).strftime("%Y-%m-%d %H:%M"),
+                          "profile_type": ptype}
+    return out
 
 
 async def list_runs(db: AsyncSession, user_id, character_id=None) -> list[dict]:

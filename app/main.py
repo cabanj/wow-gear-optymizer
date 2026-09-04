@@ -155,7 +155,7 @@ async def characters_page(request: Request, character_id: str | None = None,
         c.snapshot_time = snap_times.get(str(c.id))
     current = next((c for c in chars if str(c.id) == character_id),
                    next((c for c in chars if c.selected), chars[0] if chars else None))
-    from .reports.pages import CLASS_COLORS, character_gear, pair_slots, latest_run
+    from .reports.pages import CLASS_COLORS, character_gear, pair_slots, latest_runs
     for c in chars:
         c.class_color = CLASS_COLORS.get(c.class_name or "", "#e8e6e3")
     gear_list = []
@@ -175,13 +175,14 @@ async def characters_page(request: Request, character_id: str | None = None,
     gear_left = [g for g in gear_list if g["slot"] in armor_slots]
     gear_right = [g for g in gear_list if g["slot"] not in armor_slots]
     armor_rows, weapon_rows = pair_slots(gear_list)
-    latest = await latest_run(db, current.id) if current is not None else None
+    latest = await latest_runs(db, current.id) if current is not None else {}
     return templates.TemplateResponse(request, "characters.html",
                                        {"user": user, "characters": chars,
                                         "current": current, "gear_left": gear_left,
                                         "gear_right": gear_right, "sections": sections,
                                         "armor_rows": armor_rows, "weapon_rows": weapon_rows,
-                                        "latest_report": latest,
+                                        "latest_report": latest.get("raid") or latest.get("mplus"),
+                                        "latest_reports": latest,
                                         "all_ids": [str(c.id) for c in chars]})
 
 

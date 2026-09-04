@@ -178,6 +178,9 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 .pd-sub.q-rare, .tip-row.q-rare { color: var(--rare); }
 .pd-sub.q-uncommon { color: var(--uncommon); }
 .pd-sub.gem-uncommon, .tip-row.gem-uncommon { color: #ffd83d; }
+/* report links on character page */
+.report-links { display: flex; gap: .5rem; flex-wrap: wrap; margin: 0 0 .8rem; }
+.report-links .btn { min-height: 2.2rem; padding: .45rem .9rem; }
 /* armory-like tooltip */
 .gear-row { position: relative; }
 .gear-row .tip { display: none; position: absolute; left: 3rem; top: 100%; z-index: 20;
