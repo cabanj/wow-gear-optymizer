@@ -8,6 +8,7 @@ from app.simc.parser import ProfileResult, compute_ranking, extract_results, par
 
 
 SNAPSHOT = {
+    "summary": {"name": "Testchar", "realm": {"slug": "ravencrest"}},
     "equipment": {"character": {"name": "Testchar"}, "equipped_items": [
         {"slot": {"type": "TRINKET_1"}, "item": {"id": 100, "name": "Worn Trinket", "level": {"value": 700}}}
     ]},
@@ -27,7 +28,7 @@ def test_profileset_contains_baseline_and_candidates():
         {"iterations": 10000, "target_error": 0.002, "fight_style": "Patchwerk",
          "duration": 300, "threads": 8, "profileset_work_threads": 2},
     )
-    assert "local_json=" in text
+    assert "armory=eu,ravencrest,testchar" in text
     assert 'profileset."raid_200001_trinket1"' in text
     assert "bonus_id=10353/10890" in text
     assert "ilevel=729" in text
