@@ -134,11 +134,49 @@ def _class_allows(meta: dict, class_name: str) -> bool:
         return class_name in OH_CLASSES
     if ic == "Armor":
         allowed = CLASS_ARMOR.get(class_name, ())
-        return isc in allowed or isc in ARMOR_MISC
+        if not (isc in allowed or isc in ARMOR_MISC):
+            return False
+        return _primary_ok(meta, class_name) if isc not in ARMOR_MISC else True
     if ic == "Weapon":
         allowed = CLASS_WEAPONS.get(class_name, DEFAULT_WEAPONS)
-        return isc in allowed
+        if isc not in allowed:
+            return False
+        return _primary_ok(meta, class_name)
     return False
+
+
+# Primary stat (STR/AGI/INT) each class actually uses. Checked for Weapon and
+# non-Misc Armor — jewelry/trinkets/off-hands-Misc carry stamina + secondaries
+# only, so any of those is equippable by everyone. Hybrids allow both of theirs
+# (spec-level granularity would need the played spec, not just the class).
+CLASS_PRIMARY = {
+    "Warlock": ("INTELLECT",), "Mage": ("INTELLECT",), "Priest": ("INTELLECT",),
+    "Evoker": ("INTELLECT",),
+    "Rogue": ("AGILITY",), "Hunter": ("AGILITY",), "Monk": ("AGILITY",),
+    "Demon Hunter": ("AGILITY",),
+    "Druid": ("AGILITY", "INTELLECT"), "Shaman": ("AGILITY", "INTELLECT"),
+    "Paladin": ("STRENGTH", "INTELLECT"),
+    "Warrior": ("STRENGTH",), "Death Knight": ("STRENGTH",),
+}
+PRIMARY_STATS = ("STRENGTH", "AGILITY", "INTELLECT")
+
+
+def _primary_stat(meta: dict) -> str | None:
+    """Primary stat from the static item preview (presence matters, not value —
+    the template is low-ilvl but INT vs AGI/STR never changes with scaling)."""
+    stats = ((meta.get("preview_item") or {}).get("stats") or [])
+    for s in stats:
+        t = ((s.get("type") or {}).get("type") or "")
+        if t in PRIMARY_STATS and (s.get("value") or 0) > 0:
+            return t
+    return None
+
+
+def _primary_ok(meta: dict, class_name: str) -> bool:
+    p = _primary_stat(meta)
+    if p is None:
+        return True  # no primary on the item (jewelry/trinket) — equippable
+    return p in CLASS_PRIMARY.get(class_name, PRIMARY_STATS)
 
 
 def _is_offhand_inv(inv: str) -> bool:

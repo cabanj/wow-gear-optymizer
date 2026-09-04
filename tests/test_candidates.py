@@ -123,3 +123,31 @@ def test_generate_class_filtered_no_dupes(monkeypatch):
     # trinkets tried against both slots (each trinket item yields 2 targets)
     tk1 = [c.slot for c in cands if c.item_id == 103]
     assert set(tk1) == {"trinket1", "trinket2"}
+
+
+def _meta_with_stats(cls, sub, inv, primary=None):
+    stats = []
+    if primary:
+        stats.append({"type": {"type": primary}, "value": 100})
+    stats.append({"type": {"type": "STAMINA"}, "value": 500})
+    return {"item_class": {"name": cls}, "item_subclass": {"name": sub},
+            "inventory_type": {"name": inv},
+            "preview_item": {"stats": stats}}
+
+
+def test_class_allows_primary_stat():
+    agi_dagger = _meta_with_stats("Weapon", "Dagger", "One-Hand", "AGILITY")
+    int_dagger = _meta_with_stats("Weapon", "Dagger", "One-Hand", "INTELLECT")
+    int_staff = _meta_with_stats("Weapon", "Staff", "Two-Hand", "INTELLECT")
+    ring = _meta_with_stats("Armor", "Miscellaneous", "Finger")  # no primary
+    int_cloth = _meta_with_stats("Armor", "Cloth", "Head", "INTELLECT")
+    str_cloth = _meta_with_stats("Armor", "Cloth", "Head", "STRENGTH")
+    assert not _class_allows(agi_dagger, "Warlock")
+    assert _class_allows(int_dagger, "Warlock")
+    assert _class_allows(int_staff, "Warlock")
+    assert _class_allows(ring, "Warlock")  # jewelry has no primary — keep
+    assert _class_allows(int_cloth, "Warlock")
+    assert not _class_allows(str_cloth, "Warlock")
+    assert _class_allows(agi_dagger, "Rogue")
+    assert _class_allows(agi_dagger, "Druid")  # hybrid allows both
+    assert _class_allows(int_dagger, "Druid")
