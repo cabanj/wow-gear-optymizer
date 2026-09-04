@@ -30,6 +30,7 @@ def test_profileset_contains_baseline_and_candidates():
     )
     assert "armory=eu,ravencrest,testchar" in text
     assert 'profileset."raid_200001_trinket1"' in text
+    assert "trinket1=id=200001" in text
     assert "bonus_id=10353/10890" in text
     assert "ilevel=729" in text
     assert "fight_style=Patchwerk" in text
@@ -47,6 +48,24 @@ def test_trinket_candidate_gets_replace_variant():
          "duration": 300},
     )
     assert "replaces_trinket2" in text
+
+
+def test_item_line_slot_prefix_and_combo():
+    from app.simc.profile_builder import _item_line, Candidate as C
+    single = C(item_id=1, name="S", slot="shoulder", item_level=334,
+               bonus_ids=[6652, 12854], source="raid")
+    assert _item_line(single) == "shoulders=id=1,bonus_id=6652/12854,ilevel=334"
+    wrist = C(item_id=2, name="W", slot="wrist", item_level=334,
+              bonus_ids=[6652], source="raid")
+    assert _item_line(wrist).startswith("wrists=id=2,")
+    repl = C(item_id=3, name="T", slot="trinket1", item_level=334,
+             bonus_ids=[6652], source="raid", replace_slot="trinket2")
+    assert _item_line(repl).startswith("trinket2=id=3,")
+    combo = C(item_id=4, name="MH+OH", slot="main_hand", item_level=334,
+              bonus_ids=[6652], source="raid", pset="c",
+              off_item_id=5, off_bonus_ids=[6652], off_ilevel=334)
+    assert _item_line(combo) == ("main_hand=id=4,bonus_id=6652,ilevel=334/"
+                                 "off_hand=id=5,bonus_id=6652,ilevel=334")
 
 
 def test_json2_parsing_and_ranking():

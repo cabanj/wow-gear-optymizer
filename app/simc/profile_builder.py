@@ -43,26 +43,41 @@ class Candidate:
     off_ilevel: int = 0
 
 
-def _item_line(candidate: Candidate) -> str:
-    parts = [f"id={candidate.item_id}"]
-    if candidate.bonus_ids:
-        parts.append("bonus_id=" + "/".join(str(b) for b in candidate.bonus_ids))
-    if candidate.enchant_id:
-        parts.append(f"enchant_id={candidate.enchant_id}")
-    for g in candidate.gems:
+# SimC gear slot names: canonical slot → simc option (shoulders/wrists plural).
+# Profileset gear overrides REQUIRE the slot prefix with `=`
+# (profileset."x"=head=id=...,bonus_id=...); a bare `id=...` or `head,id=...`
+# is silently IGNORED by SimC (verified live: "Unknown option 'head,id'").
+SIMC_SLOT = {"shoulder": "shoulders", "wrist": "wrists"}
+
+
+def _simc_slot(slot: str) -> str:
+    return SIMC_SLOT.get(slot, slot)
+
+
+def _item_spec(item_id: int, bonus_ids: list[int], enchant_id: int | None,
+               gems: list[str], item_level: int) -> str:
+    parts = [f"id={item_id}"]
+    if bonus_ids:
+        parts.append("bonus_id=" + "/".join(str(b) for b in bonus_ids))
+    if enchant_id:
+        parts.append(f"enchant_id={enchant_id}")
+    for g in gems:
         parts.append(f"gem_id={g}")
-    if candidate.item_level:
-        parts.append(f"ilevel={candidate.item_level}")
-    line = ",".join(parts)
+    if item_level:
+        parts.append(f"ilevel={item_level}")
+    return ",".join(parts)
+
+
+def _item_line(candidate: Candidate) -> str:
+    slot = _simc_slot(candidate.replace_slot or candidate.slot)
+    main = _item_spec(candidate.item_id, candidate.bonus_ids,
+                      candidate.enchant_id, candidate.gems, candidate.item_level)
     if candidate.off_item_id:
-        # 1H + off-hand combo replaces both slots at once
-        ob = [f"id={candidate.off_item_id}"]
-        if candidate.off_bonus_ids:
-            ob.append("bonus_id=" + "/".join(str(b) for b in candidate.off_bonus_ids))
-        if candidate.off_ilevel:
-            ob.append(f"ilevel={candidate.off_ilevel}")
-        line += ",off_hand=" + ",".join(ob)
-    return line
+        # 1H + off-hand combo replaces both slots at once (options joined by /)
+        off = _item_spec(candidate.off_item_id, candidate.off_bonus_ids,
+                         None, [], candidate.off_ilevel)
+        return f"main_hand={main}/off_hand={off}"
+    return f"{slot}={main}"
 
 
 def build_baseline(snapshot_raw: dict, fallback_realm: str = "",
