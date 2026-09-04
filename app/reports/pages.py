@@ -289,7 +289,8 @@ async def run_report(db: AsyncSession, run_id) -> dict:
         "content_version": run.content_version,
         "baseline_fmt": _fmt(data["baseline_dps"] or 0),
         "best": ({"pct": f"{rows[0]['pct_fmt']}", "dps": rows[0]["delta_fmt"],
-                  "name": rows[0]["item_name"]} if rows else None),
+                  "name": rows[0]["item_name"], "boss": rows[0]["boss"],
+                  "ilvl": rows[0]["ilvl"]} if rows else None),
         "rows": rows,
         "slots": sorted({row["slot_label"] for row in rows}),
     }

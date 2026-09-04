@@ -22,15 +22,16 @@
 <div class="char-layout" id="charlayout">
   <aside class="char-menu" id="charmenu">
     {% for c in characters %}
-    <div class="menu-item{% if current and c.id == current.id %} active{% endif %}">
-      <input type="checkbox" class="sim-check" data-id="{{ c.id }}" {% if c.selected %}checked{% endif %}
-        aria-label="Include {{ c.name }} in daily simulations" title="Include in daily simulations" onclick="event.stopPropagation()">
-      <a href="/characters?character_id={{ c.id }}">
+    <a class="menu-item{% if current and c.id == current.id %} active{% endif %}" href="/characters?character_id={{ c.id }}">
+      <span class="dot" style="background:{{ c.class_color }}"></span>
+      <span class="who">
         <span class="nm" style="color:{{ c.class_color }}">{{ c.name }}</span>
         <span class="sub">{{ c.realm_slug }} · {{ c.class_name or '?' }}</span>
-        <span class="snap">{{ c.snapshot_time or 'no snapshot' }}</span>
-      </a>
-    </div>
+        <span class="snap">{{ c.snapshot_time or 'no snapshot yet' }}</span>
+      </span>
+      <button class="sim-toggle" data-id="{{ c.id }}" role="switch" aria-checked="{{ 'true' if c.selected else 'false' }}"
+        aria-label="Simulate {{ c.name }} daily" title="Simulate daily" onclick="event.preventDefault()"></button>
+    </a>
     {% endfor %}
     {% if not characters %}<p class="meta">No characters yet.</p>{% endif %}
   </aside>
@@ -125,15 +126,18 @@ document.getElementById('refresh').onclick = async () => {
   m.textContent = r.ok ? 'Done — reloading…' : 'Refresh failed (' + r.status + ')';
   if (r.ok) setTimeout(() => location.reload(), 800);
 };
-document.querySelectorAll('.sim-check').forEach(box => box.onchange = async () => {
+document.querySelectorAll('.sim-toggle').forEach(tg => tg.onclick = async (e) => {
+  e.preventDefault(); e.stopPropagation();
+  const on = tg.getAttribute('aria-checked') !== 'true';
+  tg.setAttribute('aria-checked', on);
   const cur = await (await fetch('/api/characters')).json();
   const ids = new Set(cur.filter(c => c.selected).map(c => c.id));
-  if (box.checked) ids.add(box.dataset.id); else ids.delete(box.dataset.id);
+  if (on) ids.add(tg.dataset.id); else ids.delete(tg.dataset.id);
   const r = await fetch('/api/characters/select', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({character_ids: [...ids]})
   });
-  if (!r.ok) { box.checked = !box.checked; }
+  if (!r.ok) { tg.setAttribute('aria-checked', !on); }
 });
 document.getElementById('add-form').onsubmit = async (e) => {
   e.preventDefault();

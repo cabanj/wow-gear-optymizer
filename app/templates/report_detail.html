@@ -5,18 +5,25 @@
 <details><summary>build info</summary>SimC {{ simc_version or '?' }} · WoW {{ wow_build or '?' }} · {{ content_version or '' }}</details></p>
 {% if warning %}<p class="warn">⚠ {{ warning }}</p>{% endif %}
 
-<div class="summary">
-  <div class="card"><div class="k">Current DPS</div><div class="v">{{ baseline_fmt }}</div></div>
-  {% if best %}<div class="card"><div class="k">Best upgrade</div>
-    <div class="v up">#1 +{{ best.pct }}% <span class="meta">(+{{ best.dps }})</span></div>
-    <div class="k">{{ best.name }}</div></div>{% endif %}
+{% if best %}
+<div class="hunt-bar">
+  <span class="hunt-tag">Poluj dziś na</span>
+  <div class="hunt-mid">
+    <div class="hunt-name">{{ best.name }}</div>
+    <div class="hunt-sub">{{ best.boss }} · ilvl {{ best.ilvl }}</div>
+  </div>
+  <div>
+    <div class="hunt-dps">+{{ best.dps }} DPS ({{ best.pct }}%)</div>
+    <div class="hunt-base">masz teraz {{ baseline_fmt }} DPS</div>
+  </div>
 </div>
+{% endif %}
 
 <div class="tabs" id="srctabs">
   <button class="on" data-f="all">All</button>
   <button data-f="raid">Raid</button>
   <button data-f="mplus">Mythic+</button>
-  <button id="groupbtn" aria-pressed="false" title="toggle grouping">Grouped: off</button>
+  <button id="groupbtn" aria-pressed="true" title="toggle grouping">Grouped: on</button>
 </div>
 <div class="chips" id="slotchips">
   <button class="on" data-s="all">All slots</button>
@@ -61,7 +68,7 @@
 <script>
 const rows = [...document.querySelectorAll('.rank-row')];
 const groups = [...document.querySelectorAll('.boss-group')];
-let src = 'all', slot = 'all', grouped = false;
+let src = 'all', slot = 'all', grouped = true;
 document.querySelectorAll('#srctabs button[data-f]').forEach(b => b.onclick = () => {
   document.querySelectorAll('#srctabs button[data-f]').forEach(x => x.classList.remove('on'));
   b.classList.add('on'); src = b.dataset.f; apply();
@@ -88,11 +95,18 @@ function apply() {
   if (!grouped) groups.forEach(g => g.style.display = 'none');
 }
 apply();
+groups.forEach(g => {
+  let n = 0;
+  for (let el = g.nextElementSibling; el && !el.classList.contains('boss-group'); el = el.nextElementSibling) {
+    if (el.classList.contains('rank-row')) n++;
+  }
+  if (n) g.innerHTML += ' <span class="cnt">· ' + n + ' to hunt</span>';
+});
 rows.forEach(tr => tr.querySelector('.rank-main').onclick = () => tr.classList.toggle('open'));
 new Chart(document.getElementById('hist'), {
   type: 'line',
-  data: { labels: {{ hist_labels|tojson }}, datasets: [{ label: 'Baseline DPS', data: {{ hist_values|tojson }}, borderColor: '#2f5fbe', tension: .2 }] },
-  options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#9aa3b2' } }, x: { ticks: { color: '#9aa3b2' } } } }
+  data: { labels: {{ hist_labels|tojson }}, datasets: [{ label: 'Baseline DPS', data: {{ hist_values|tojson }}, borderColor: '#3b6fd4', tension: .2 }] },
+  options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#8b93a7' } }, x: { ticks: { color: '#8b93a7' } } } }
 });
 </script>
 {% endblock %}
