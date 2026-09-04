@@ -23,7 +23,7 @@ def _slot_from_inv(inv_type: str) -> str | None:
         return "main_hand"
     if key.startswith("one hand") or key.startswith("main hand"):
         return "main_hand"
-    if key.startswith("off hand") or key in ("holdable", "shield"):
+    if key.startswith("off hand") or "off hand" in key or key in ("holdable", "shield"):
         return "off_hand"
     if key and (key.startswith("range") or key.split()[0] in
                 ("bow", "gun", "crossbow", "thrown")):
