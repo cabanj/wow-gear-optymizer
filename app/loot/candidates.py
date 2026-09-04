@@ -55,10 +55,13 @@ CLASS_ARMOR = {
 ARMOR_MISC = ("Miscellaneous",)
 
 # Weapon subclasses (item_class=Weapon) each class may hold.
+# Cloth casters are 2H-staff (midnight build): restrict to Staff so we never
+# offer a 1H dagger that would need an off-hand and break the gear swap.
 CLASS_WEAPONS = {
-    "Warlock": ("Staff", "Dagger", "One-Handed Sword"),
-    "Mage": ("Staff", "Dagger", "One-Handed Sword"),
-    "Priest": ("Staff", "Dagger", "One-Handed Sword"),
+    "Warlock": ("Staff",),
+    "Mage": ("Staff",),
+    "Priest": ("Staff",),
+    "Evoker": ("Staff",),
     "Rogue": ("Dagger", "One-Handed Sword", "One-Handed Axe", "Fist", "Warglaives"),
     "Monk": ("Staff", "", "One-Handed Sword", "One-Handed Axe", "Fist"),
     "Druid": ("Staff", "Dagger", "One-Handed Sword", "One-Handed Mace", "Fist", "Polearm"),
