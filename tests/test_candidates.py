@@ -59,7 +59,7 @@ class FakeDB:
 
 
 class FakePolicy:
-    def raid_variant(self, item_id, diff):
+    def raid_variant(self, item_id, diff, encounter_id=None):
         return {"item_id": item_id, "source": "raid", "difficulty": diff,
                 "item_level": {"lfr": 280, "normal": 292, "heroic": 305,
                                "mythic": 334}[diff],
