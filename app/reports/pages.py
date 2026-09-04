@@ -125,7 +125,8 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
                 cached = await get_cached(db, key)
                 if cached and not cached.get("pending") and cached.get("value") is not None:
                     d = scale_description(d, cached.get("value"),
-                                          cached.get("duration"), cached.get("rating"))
+                                          cached.get("duration"), cached.get("rating"),
+                                          cached.get("value2"))
                 elif not cached or cached.get("pending"):
                     await set_cached(db, key, {"pending": True}, 30 * 86400)
             effects.append(d)

@@ -33,3 +33,13 @@ def test_scale_does_not_touch_cooldown_number():
     d = "Use: Echo the drum. (4 Sec Cooldown)"
     out = scale_description(d, 0.0, None, None)
     assert out == d
+
+
+def test_scale_gain_and_reduction():
+    d = ("Use: Take a small sip of venom, gaining 513 of a random secondary stat "
+         "for 15 sec. Afterwards, a random secondary stat is reduced by 73 "
+         "for 15 sec. (2 Min Cooldown)")
+    out = scale_description(d, 913.93, None, None, 130.58)
+    assert out == ("Use: Take a small sip of venom, gaining 914 of a random secondary stat "
+                   "for 15 sec. Afterwards, a random secondary stat is reduced by 131 "
+                   "for 15 sec. (2 Min Cooldown)")
