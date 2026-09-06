@@ -206,6 +206,9 @@ async def build_report_data(db: AsyncSession, run_id: uuid.UUID) -> dict:
     ranking = [r for r in ranking if r["delta_dps"] > 0]
     for i, row in enumerate(ranking, 1):
         row["rank"] = i
+    # weapon setups (staff vs 1H+off-hand combos) are ALWAYS shown, even as
+    # downgrades — "staff still wins by X" is the answer the reader is after
+    combos = [r for r in compute_ranking(prs) if "_combo_" in (r["name"] or "")]
     return {
         "run_id": str(run_id),
         "simc_version": run.simc_version,
@@ -213,4 +216,5 @@ async def build_report_data(db: AsyncSession, run_id: uuid.UUID) -> dict:
         "content_version": run.content_version,
         "baseline_dps": next((float(r.mean) for r in results if r.profileset_name is None), None),
         "ranking": ranking,
+        "combos": combos,
     }

@@ -16,7 +16,7 @@ def _row(**kw):
          "replaces_item_id": 2, "replaces_ilvl": 300, "quality": "epic", "stats": "",
          "dps_fmt": "37 374", "median_fmt": "37 370", "delta_fmt": "48",
          "pct_fmt": "0.13", "err_pct": "2.89", "std_fmt": "1 078",
-         "iterations": 10000, "within_error": True, "bar_pct": 100}
+         "iterations": 10000, "within_error": True, "bar_pct": 100, "gain": True}
     d.update(kw)
     return d
 
@@ -60,6 +60,22 @@ def test_report_replaces_link():
     html = env.get_template("report_detail.html").render(**_ctx())
     assert "https://www.wowhead.com/item=2" in html
     assert "Item Level 300" in html
+
+
+def test_report_combo_section_shows_downgrade_without_double_sign():
+    ctx = _ctx()
+    ctx["combo_rows"] = [_row(rank=1, name="raid_combo_1x2_main_hand",
+                              item_name="Hexing Spiritrender",
+                              off_name="Spine of the Hissing Abyss",
+                              off_item_id=9, item_id=8, slot="main_hand",
+                              slot_label="Main Hand", boss="A / B",
+                              ilvl="334 / 334", delta_fmt="-3 804",
+                              pct_fmt="-2.16", gain=False, bar_pct=100)]
+    html = env.get_template("report_detail.html").render(**ctx)
+    assert "Weapon setups" in html
+    assert "Hexing Spiritrender + Spine of the Hissing Abyss" in html
+    assert "+-" not in html
+    assert 'class="d down"' in html
 
 
 def test_characters_latest_report_link():

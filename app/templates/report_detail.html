@@ -12,8 +12,8 @@
       <div class="bar"><i style="width:{{ r.bar_pct }}%"></i></div>
     </div>
     <div class="rank-delta">
-      <div class="d up">+{{ r.delta_fmt }}</div>
-      <div class="up">+{{ r.pct_fmt }}%{% if r.within_error %} <span class="warn" title="gain within 2× stddev of simulation error">±{{ r.err_pct }}%</span>{% endif %}</div>
+      <div class="d {{ 'up' if r.gain else 'down' }}">{{ '+' if r.gain }}{{ r.delta_fmt }}</div>
+      <div class="{{ 'up' if r.gain else 'down' }}">{{ '+' if r.gain }}{{ r.pct_fmt }}%{% if r.within_error %} <span class="warn" title="gain within 2× stddev of simulation error">±{{ r.err_pct }}%</span>{% endif %}</div>
       <div class="meta">{{ r.dps_fmt }}</div>
     </div>
   </div>
@@ -57,6 +57,13 @@
 <div id="ranking">
 {% for r in rows %}{{ rank_row(r) }}{% endfor %}
 </div>
+
+{% if combo_rows %}
+<h2>Weapon setups (current vs 1H + off-hand)</h2>
+<div id="combos">
+{% for r in combo_rows %}{{ rank_row(r) }}{% endfor %}
+</div>
+{% endif %}
 
 <p class="meta">Results are simulation estimates. Small differences may be within simulation error.</p>
 {% if quarantined %}

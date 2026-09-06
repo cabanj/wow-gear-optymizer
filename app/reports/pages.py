@@ -313,22 +313,24 @@ async def run_report(db: AsyncSession, run_id) -> dict:
                 "embellishments": [e["name"] for e in embellishments_for(
                     it.get("bonus_list") or (it.get("item") or {}).get("bonus_ids") or [])],
             }
-    for r in data["ranking"]:
+    async def _row(r, rank_override=None, scale=None):
         c = cand_by_name.get(r["name"], {})
         slot = (c.get("slot") or r["name"].split("_")[-1])
         boss = c.get("boss_or_dungeon") or "—"
         rep = worn_map.get(slot, {})
-        rows.append({
-            "rank": r["rank"], "name": r["name"],
+        sc = scale if (scale or 0) > 0 else max_delta
+        return {
+            "rank": rank_override if rank_override is not None else r["rank"],
+            "name": r["name"],
             "item_name": c.get("name") or r["name"],
             "off_name": c.get("off_name") or "",
             "off_item_id": c.get("off_item_id") or 0,
             "item_id": c.get("item_id") or 0,
             "slot": slot, "slot_label": SLOT_LABELS.get(slot, slot),
             "source": "mplus" if r["name"].startswith("mplus") else "raid",
-            "source_label": ("Mythic+ " + (c.get("variant") or "")).strip()
+            "source_label": (("Mythic+ " + (c.get("variant") or "")).strip()
                             if r["name"].startswith("mplus")
-                            else ("Raid " + (c.get("difficulty") or "")).strip(),
+                            else ("Raid " + (c.get("difficulty") or "")).strip()),
             "boss": boss,
             "ilvl": (f"{c.get('item_level')} / {c.get('off_ilvl')}"
                      if c.get("off_item_id") else c.get("item_level")) or "?",
@@ -343,8 +345,19 @@ async def run_report(db: AsyncSession, run_id) -> dict:
             "err_pct": f"{(r['stddev'] / (data['baseline_dps'] or 1) * 100):.2f}",
             "std_fmt": _fmt(r["stddev"]), "iterations": r["iterations"],
             "within_error": r["within_error"],
-            "bar_pct": round(r["delta_dps"] / max_delta * 100) if max_delta > 0 else 0,
-        })
+            "bar_pct": round(abs(r["delta_dps"]) / sc * 100) if sc > 0 else 0,
+            "gain": r["delta_dps"] >= 0,
+        }
+
+    rows = []
+    for r in data["ranking"]:
+        rows.append(await _row(r))
+    # weapon setups always visible, even as downgrades (rank = order among combos)
+    combo_data = data.get("combos") or []
+    combo_scale = max([abs(r["delta_dps"]) for r in combo_data] + [1])
+    combo_rows = []
+    for i, r in enumerate(combo_data, 1):
+        combo_rows.append(await _row(r, rank_override=i, scale=combo_scale))
 
     return {
         "character": {"name": char.name, "realm": char.realm_slug,
@@ -362,6 +375,7 @@ async def run_report(db: AsyncSession, run_id) -> dict:
                   "ilvl": rows[0]["ilvl"]} if rows else None),
         "top3": rows[:3],
         "rows": rows,
+        "combo_rows": combo_rows,
         "slots": sorted({(row["slot"], row["slot_label"]) for row in rows}),
         "fight": fight,
         "talents": talents,

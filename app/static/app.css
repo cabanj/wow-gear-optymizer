@@ -32,7 +32,7 @@ h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; }
 .report-meta details { display: inline; }
 .report-meta summary { display: inline; cursor: pointer; text-decoration: underline dotted; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
-.up { color: var(--up); } .warn { color: var(--warn); }
+.up { color: var(--up); } .warn { color: var(--warn); } .down { color: #f07178; }
 .btn { display: inline-block; padding: .65rem 1.1rem; background: var(--accent); color: #fff;
   border: 0; border-radius: .4rem; cursor: pointer; text-decoration: none; font-size: .9rem;
   min-height: 2.75rem; }
