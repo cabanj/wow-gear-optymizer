@@ -114,3 +114,27 @@ def test_snapshot_talents_only_active_spec():
     assert t["spec"] == "Demonology"
     assert t["hero"] == "Diabolist"
     assert t["code"] == "DEMO123"
+
+
+def test_snapshot_sets_only_active_bonuses():
+    from types import SimpleNamespace
+    from app.reports.pages import _snapshot_sets
+    snap = SimpleNamespace(raw={
+        "equipment": {"equipped_item_sets": [
+            {"item_set": {"name": "Damned Necrolyte's Shattered Restraints"},
+             "display_string": "Damned Necrolyte's Shattered Restraints (4/5)",
+             "effects": [
+                 {"required_count": 2, "is_active": True,
+                  "display_string": "Set: Wild Imp damage increased by 10%."},
+                 {"required_count": 4, "is_active": True,
+                  "display_string": "Set: fling themselves."}]},
+            {"item_set": {"name": "Old Set"}, "display_string": "Old Set (1/5)",
+             "effects": [{"required_count": 2, "is_active": False,
+                          "display_string": "Set: nothing."}]},
+        ]}})
+    sets = _snapshot_sets(snap)
+    assert len(sets) == 1
+    assert sets[0]["name"] == "Damned Necrolyte's Shattered Restraints"
+    assert all(e["active"] for e in sets[0]["effects"])
+    assert len(sets[0]["effects"]) == 2
+    assert _snapshot_sets(SimpleNamespace(raw={})) == []

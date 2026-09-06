@@ -379,8 +379,37 @@ async def run_report(db: AsyncSession, run_id) -> dict:
         "slots": sorted({(row["slot"], row["slot_label"]) for row in rows}),
         "fight": fight,
         "talents": talents,
+        "tier_sets": _snapshot_sets(snap),
         "quarantined": ((run.simulation_config or {}).get("quarantined") or []),
     }
+
+
+def _snapshot_sets(snap) -> list[dict]:
+    """Worn tier sets with active bonuses, from the armory snapshot.
+
+    Shown on the report so downgrades vs tier pieces are understood:
+    the sim imports exact gear (set bonuses included), a Mythic non-tier
+    piece replacing a tier slot loses the 2pc/4pc effect.
+    """
+    out = []
+    try:
+        sets = ((snap.raw or {}).get("equipment") or {}).get("equipped_item_sets") or []
+    except AttributeError:
+        return out
+    for s in sets:
+        effects = [{
+            "required_count": e.get("required_count"),
+            "text": e.get("display_string", ""),
+            "active": bool(e.get("is_active")),
+        } for e in (s.get("effects") or [])]
+        if not any(e["active"] for e in effects):
+            continue
+        out.append({
+            "name": ((s.get("item_set") or {}).get("name") or "?"),
+            "display": s.get("display_string") or "",
+            "effects": effects,
+        })
+    return out
 
 
 def _snapshot_talents(snap) -> dict:
