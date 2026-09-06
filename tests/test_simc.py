@@ -1,8 +1,9 @@
 def test_item_line_slot_prefix_and_combo():
     from app.simc.profile_builder import _item_line, _item_lines, _slug, Candidate as C
-    assert _slug("Aln'hara Cane") == "aln'hara_cane"
-    assert _slug("Caustic Chain-Wrapped Sash") == "caustic_chain-wrapped_sash"
-    assert _slug("Jan'thrazet, the Soul Fang") == "jan'thrazet_the_soul_fang"
+    assert _slug("Aln'hara Cane") == "alnhara_cane"
+    assert _slug("Caustic Chain-Wrapped Sash") == "caustic_chainwrapped_sash"
+    assert _slug("Jan'thrazet, the Soul Fang") == "janthrazet_the_soul_fang"
+    assert _slug("Spine of the Hissing Abyss (OH combo)") == "spine_of_the_hissing_abyss_oh_combo"
     single = C(item_id=1, name="Shawl", slot="shoulder", item_level=334,
                bonus_ids=[6652, 12854], source="raid")
     assert _item_line(single) == "shoulders=shawl,id=1,bonus_id=6652/12854,ilevel=334"

@@ -19,10 +19,20 @@ class BlizzardClient:
 
     # -- token management -------------------------------------------------
     async def _get_user_token(self, tokens: dict) -> str:
+        if not tokens.get("access_token"):
+            raise RuntimeError(
+                "no Blizzard access token stored — re-login required "
+                "(/auth/blizzard/login in the browser)")
         if TokenStore.is_expired(tokens):
+            if not tokens.get("refresh_token"):
+                raise RuntimeError(
+                    "Blizzard access token expired and no refresh token stored — "
+                    "re-login required (/auth/blizzard/login in the browser)")
             refreshed = await self._oauth.refresh(tokens["refresh_token"])
             refreshed["expires_at"] = time.time() + refreshed["expires_in"]
             tokens.update(refreshed)
+            # NOTE: callers persist the mutated dict back to the DB
+            # (snapshot_character / discover_characters do this on commit).
         return tokens["access_token"]
 
     async def _get_app_token(self) -> str:

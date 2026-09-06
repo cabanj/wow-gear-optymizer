@@ -5,7 +5,7 @@
   <div class="rank-main">
     <div class="rank-pos">#{{ r.rank }}</div>
     <div>
-      <div class="rank-name q-{{ r.quality }}">{{ r.item_name }}</div>
+      <div class="rank-name q-{{ r.quality }}">{{ r.item_name }}{% if r.off_name %} + {{ r.off_name }}{% endif %}</div>
       <div class="rank-sub">{{ r.slot_label }} · {{ r.boss }} · ilvl {{ r.ilvl }} · replaces
         {% if r.replaces_item_id %}<a class="rep-link" href="https://www.wowhead.com/item={{ r.replaces_item_id }}" target="_blank" rel="noopener">{{ r.replaces }}<span class="mini-tip">{{ r.replaces }}<br>Item Level {{ r.replaces_ilvl }}<br><span class="tip-hint">Click for Wowhead ↗</span></span></a>{% else %}{{ r.replaces }}{% endif %}
       </div>
@@ -24,7 +24,7 @@
       <dt>Bonus IDs</dt><dd><code>{{ r.bonus_ids }}</code></dd>
       <dt>Stats</dt><dd>{{ r.stats or '—' }}</dd>
       <dt>DPS</dt><dd>{{ r.dps_fmt }} (mean), median {{ r.median_fmt }}, ±{{ r.std_fmt }} over {{ r.iterations }} iterations</dd>
-      <dt>Links</dt><dd><a href="https://www.wowhead.com/item={{ r.item_id }}" target="_blank" rel="noopener">Wowhead ↗</a></dd>
+      <dt>Links</dt><dd><a href="https://www.wowhead.com/item={{ r.item_id }}" target="_blank" rel="noopener">Wowhead ↗</a>{% if r.off_item_id %} · <a href="https://www.wowhead.com/item={{ r.off_item_id }}" target="_blank" rel="noopener">Off-hand ↗</a>{% endif %}</dd>
     </dl>
   </div>
 </div>

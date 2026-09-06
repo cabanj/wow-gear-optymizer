@@ -57,13 +57,32 @@ def _simc_slot(slot: str) -> str:
 
 
 def _slug(name: str) -> str:
-    """SimC item label: no spaces (profileset values split on whitespace),
-    no , = / \" (structural chars). The label is positional only — SimC takes
-    everything before the first comma as the name, so id= must never be first.
+    """Mirror of SimC's util::tokenize (engine/util/util.cpp), char for char.
+
+    Why exact: item_t::init compares our label against the DBC item name
+    after tokenizing BOTH. Any difference ("inconsistency between name")
+    renames the item and then SEGFAULTS the whole run (exit -11, verified
+    live 2026-09-06: exact names exit 0 with gear applied, "+..."/suffix
+    names segfault). So this must match SimC, not just "look clean".
+
+    SimC rules: strip leading _/+, drop non-ASCII, alpha→lower, space→_,
+    keep _ + . % and digits, ERASE everything else (incl. ' - ( ) , = /).
     """
-    s = re.sub(r'[,="/]', "", name or "item")
-    s = re.sub(r"\s+", "_", s.strip()).strip("_")
-    return s.lower() or "item"
+    s = name or "item"
+    s = re.sub(r"^[_+]+", "", s)  # SimC strips leading _/+
+    out: list[str] = []
+    for ch in s:
+        o = ord(ch)
+        if o >= 0x80:
+            continue  # non-ASCII erased
+        if ch.isalpha():
+            out.append(ch.lower())
+        elif ch == " ":
+            out.append("_")
+        elif ch in "_+.% " or ch.isdigit():
+            out.append(ch)
+        # else: erased (apostrophe, hyphen, parens, comma, = / etc.)
+    return "".join(out).strip("_") or "item"
 
 
 def _item_spec(name: str, item_id: int, bonus_ids: list[int],

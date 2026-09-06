@@ -18,6 +18,10 @@ async def discover_characters(db: AsyncSession, account: BlizzardAccount) -> lis
         store_tokens = TokenStore().decrypt(account.tokens_encrypted.encode())
 
     data = await client.user_wow_accounts(store_tokens)
+    if store_tokens.get("access_token") and account.tokens_encrypted:
+        from ..auth.blizzard_oauth import TokenStore as _TS
+        account.tokens_encrypted = _TS().encrypt(store_tokens).decode()
+        account.token_expires_at = store_tokens.get("expires_at")
     result = []
     for wow_account in data.get("accounts", []):
         for char in wow_account.get("characters", []):
@@ -71,6 +75,13 @@ async def snapshot_character(
         talents = await client.character_talents(tokens, character.realm_slug, character.name)
     except Exception:
         talents = {}  # talents can 404 for some chars; non-fatal
+
+    # persist refreshed tokens (client mutates the dict in place on refresh;
+    # without this every new process re-refreshes with the stale DB copy)
+    if tokens.get("access_token"):
+        from ..auth.blizzard_oauth import TokenStore as _TS
+        account.tokens_encrypted = _TS().encrypt(tokens).decode()
+        account.token_expires_at = tokens.get("expires_at")
 
     # mark previous snapshots not current
     old = (await db.execute(

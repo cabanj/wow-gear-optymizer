@@ -30,18 +30,26 @@ def create_scheduler(engine) -> AsyncIOScheduler:
 
 
 async def daily_report(engine) -> None:
-    """Full pipeline: snapshot → sim runs for all selected characters."""
+    """Full pipeline: snapshot → sim runs for all selected characters.
+
+    Fallback: if the Blizzard refresh fails, sim from the latest stored
+    snapshot anyway (marked with a warning) — a stale-gear report beats
+    no report. Only when no snapshot exists at all is the char skipped.
+    """
     from ..characters.service import snapshot_character
     from ..reports.service import purge_old_data, run_full_simulation
     from sqlalchemy.ext.asyncio import async_sessionmaker
 
+    log.info("daily_report start")
     Session = async_sessionmaker(engine, expire_on_commit=False)
     async with Session() as db:
         await purge_old_data(db, days=3)
         chars = (await db.execute(
             select(Character).join(BlizzardAccount).where(Character.selected.is_(True))
         )).scalars().all()
+        log.info("daily_report: %d selected character(s)", len(chars))
         for char in chars:
+            warning = None
             try:
                 account = (await db.execute(
                     select(BlizzardAccount).where(BlizzardAccount.id == char.blizzard_account_id)
@@ -49,7 +57,8 @@ async def daily_report(engine) -> None:
                 try:
                     snap = await snapshot_character(db, char, account)
                 except Exception as e:
-                    # Blizzard API down: use latest snapshot, mark age
+                    # Blizzard API down or token dead: use latest snapshot,
+                    # mark age — sims still run (see below).
                     snap = (await db.execute(
                         select(CharacterSnapshot).where(
                             CharacterSnapshot.character_id == char.id)
@@ -61,15 +70,19 @@ async def daily_report(engine) -> None:
                     age_h = (datetime.now(timezone.utc)
                              - snap.timestamp.replace(tzinfo=timezone.utc)
                              ).total_seconds() / 3600
-                    await _make_report(db, char, snap, profile_type="raid",
-                                       warning=f"Using character snapshot from {age_h:.0f} hours ago. "
-                                               f"Blizzard API refresh failed ({e}).")
-                    continue
+                    warning = (f"Using character snapshot from {age_h:.0f} hours ago. "
+                               f"Blizzard API refresh failed ({e}).")
+                    log.warning("snapshot refresh failed for %s: %s — using stale", char.name, e)
                 for ptype in ("raid", "mplus"):
                     await run_full_simulation(db, char, snap, ptype)
                 # report rows created when runs complete (worker side / status check)
+                if warning:
+                    await _make_report(db, char, snap, profile_type="raid", warning=warning)
+                log.info("daily_report: enqueued %s%s", char.name,
+                         " (stale snapshot)" if warning else "")
             except Exception:
                 log.exception("daily report failed for %s", char.name)
+    log.info("daily_report finish")
 
 
 async def _make_report(db, char, snap, profile_type, warning=None):

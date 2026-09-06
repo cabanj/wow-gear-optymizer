@@ -318,7 +318,7 @@ async def generate_candidates(
                 boss_or_dungeon=f"{mh['boss']} / {oh['boss']}",
                 inventory_type="Two-Hand",
                 pset=f"{src}_combo_{mh_id}x{oh_id}_main_hand",
-                off_item_id=oh_id, off_name=f"{oh['name']} (OH combo)",
+                off_item_id=oh_id, off_name=oh["name"],
                 off_ilvl=ohv["item_level"], off_bonus_ids=ohv["bonus_ids"],
                 off_boss=oh["boss"],
             ))
