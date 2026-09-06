@@ -279,8 +279,14 @@ async def api_refresh_characters(user: User | None = Depends(get_current_user),
         select(BlizzardAccount).where(BlizzardAccount.user_id == user.id)
     )).scalar_one_or_none()
     if account is None or account.tokens_encrypted is None:
-        raise HTTPException(400, "no blizzard account linked")
-    chars = await discover_characters(db, account)
+        raise HTTPException(401, {"message": "no blizzard account linked",
+                                  "login_url": "/auth/blizzard"})
+    try:
+        chars = await discover_characters(db, account)
+    except RuntimeError as e:
+        # dead/expired user token (Blizzard issues none that refresh) —
+        # only a fresh browser login mints new tokens
+        raise HTTPException(401, {"message": str(e), "login_url": "/auth/blizzard"})
     return {"count": len(chars), "characters": chars}
 
 
@@ -299,7 +305,10 @@ async def api_snapshot(character_id: str,
     account = (await db.execute(
         select(BlizzardAccount).where(BlizzardAccount.id == char.blizzard_account_id)
     )).scalar_one()
-    snap = await snapshot_character(db, char, account)
+    try:
+        snap = await snapshot_character(db, char, account)
+    except RuntimeError as e:
+        raise HTTPException(401, {"message": str(e), "login_url": "/auth/blizzard"})
     return {"snapshot_id": str(snap.id), "timestamp": str(snap.timestamp),
             "item_level": float(snap.item_level) if snap.item_level else None}
 

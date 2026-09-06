@@ -31,6 +31,7 @@
         </form>
       </div>
       <button class="btn ghost rail-btn" id="refresh">Refresh from Blizzard</button>
+      <a class="btn ghost rail-btn" href="/auth/blizzard">Blizzard login</a>
       <span class="meta" id="msg2"></span>
     </div>
   </aside>
@@ -120,8 +121,13 @@ document.getElementById('refresh').onclick = async () => {
   const m = document.getElementById('msg2');
   m.textContent = 'Refreshing…';
   const r = await fetch('/api/characters/refresh', {method: 'POST'});
-  m.textContent = r.ok ? 'Done — reloading…' : 'Refresh failed (' + r.status + ')';
-  if (r.ok) setTimeout(() => location.reload(), 800);
+  if (r.ok) { m.textContent = 'Done — reloading…'; setTimeout(() => location.reload(), 800); return; }
+  // 401 with login_url means the Blizzard token died (they last 24h and
+  // Blizzard issues no refresh token) — point at the login instead of a code
+  let login = null;
+  try { const j = await r.json(); login = j.detail && j.detail.login_url; } catch (e) {}
+  m.innerHTML = login ? 'Blizzard login expired — <a href="' + login + '">log in again</a>, then Refresh.'
+                      : 'Refresh failed (' + r.status + ')';
 };
 document.querySelectorAll('.sim-toggle').forEach(tg => tg.onclick = async (e) => {
   e.preventDefault(); e.stopPropagation();
