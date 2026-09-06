@@ -126,10 +126,12 @@ async def run_full_simulation(
     return run.id
 
 
-async def purge_old_data(db: AsyncSession, days: int = 3) -> dict:
-    """Keep only recent history: delete reports/runs/results older than `days`.
+async def purge_old_data(db: AsyncSession, days: int = 3, keep_runs: int = 3) -> dict:
+    """Keep history small: delete reports/runs/results older than `days`,
+    and keep only the latest `keep_runs` runs per character (any age).
 
     Order matters (reports reference runs via FK): reports → results → runs.
+    Running/pending runs are never deleted; runs linked from a report are kept.
     """
     from datetime import datetime, timezone
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
@@ -154,6 +156,32 @@ async def purge_old_data(db: AsyncSession, days: int = 3) -> dict:
         # never orphan a report: reports were deleted above if old enough
         await db.delete(row)
         n_runs += 1
+    # keep-last-N per character: old automated + manual runs pile up fast
+    # (2 profiles × N chars daily); the reports page only shows the latest.
+    linked: set = set()
+    for col in (Report.simulation_run_raid, Report.simulation_run_mplus):
+        q = await db.execute(select(col).where(col.is_not(None)))
+        linked.update(r[0] for r in q.all())
+    chars = await db.execute(select(SimulationRun.character_id).distinct())
+    for (char_id,) in chars.all():
+        q = await db.execute(
+            select(SimulationRun)
+            .where(SimulationRun.character_id == char_id,
+                   SimulationRun.status.in_(("completed", "failed")),
+                   SimulationRun.finished_at.is_not(None))
+            .order_by(SimulationRun.finished_at.desc()))
+        excess = q.scalars().all()[keep_runs:]
+        for row in excess:
+            if row.id in linked:
+                continue
+            res_q = await db.execute(
+                select(SimulationResult).where(
+                    SimulationResult.simulation_run_id == row.id))
+            for res_row in res_q.scalars().all():
+                await db.delete(res_row)
+                n_res += 1
+            await db.delete(row)
+            n_runs += 1
     await db.commit()
     return {"reports": n_rep, "results": n_res, "runs": n_runs}
 
