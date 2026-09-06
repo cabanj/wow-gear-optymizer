@@ -294,6 +294,21 @@ async def generate_candidates(
                     v["source"], v["difficulty"], v["variant"] = "mplus", "mythic", variant
                     variants.append(v)
 
+            # max-ilvl only: one variant per item. Lower difficulties of the
+            # same item are never upgrades over its mythic version — they only
+            # duplicate ranking rows (same item twice) and waste sim time.
+            if variants:
+                top_ilvl = max(v["item_level"] for v in variants)
+                variants = [v for v in variants if v["item_level"] == top_ilvl]
+
+                def _src_rank(v):
+                    if v["source"] == "raid":
+                        return 0
+                    return 1 if v["variant"] == "bonus_roll" else 2
+
+                variants.sort(key=_src_rank)
+                variants = variants[:1]
+
             for tgt in targets:
                 for v in variants:
                     _add(CandidateItem(

@@ -188,3 +188,36 @@ def test_class_allows_primary_stat():
     assert _class_allows(agi_dagger, "Rogue")
     assert _class_allows(agi_dagger, "Druid")  # hybrid allows both
     assert _class_allows(int_dagger, "Druid")
+
+def test_one_variant_per_item_max_ilvl(monkeypatch):
+    """Same item at several difficulties → single candidate at max ilvl."""
+    import asyncio
+    from app.loot import candidates as C
+    from app.loot.candidates import generate_candidates
+
+    async def fake_encounter(adb, enc_id):
+        return [{"item_id": 101, "name": "item101"},
+                {"item_id": 103, "name": "item103"}]
+
+    async def fake_meta(adb, item_id):
+        inv = "Head" if item_id == 101 else "Trinket"
+        return {"item_class": {"name": "Armor"},
+                "item_subclass": {"name": "Cloth" if item_id == 101 else "Miscellaneous"},
+                "inventory_type": {"name": inv}}
+
+    monkeypatch.setattr(C, "encounter_items", fake_encounter)
+    monkeypatch.setattr(C, "item_metadata", fake_meta)
+
+    async def run():
+        return await generate_candidates(
+            None, {1: "Boss"},
+            {"head": {"item_id": 900, "item_level": 300},
+             "trinket1": {"item_id": 902, "item_level": 300},
+             "trinket2": {"item_id": 903, "item_level": 300}},
+            FakePolicy(), max_per_slot=3, class_name="Warlock")
+
+    cands = asyncio.run(run())
+    heads = [c for c in cands if c.item_id == 101]
+    assert len(heads) == 1  # not 4 difficulties + vault
+    assert heads[0].item_level == 334  # mythic max (FakePolicy)
+    assert heads[0].source == "raid"
