@@ -365,6 +365,7 @@ async def run_report(db: AsyncSession, run_id) -> dict:
         "slots": sorted({(row["slot"], row["slot_label"]) for row in rows}),
         "fight": fight,
         "talents": talents,
+        "quarantined": ((run.simulation_config or {}).get("quarantined") or []),
     }
 
 

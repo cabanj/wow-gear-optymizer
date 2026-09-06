@@ -59,6 +59,10 @@
 </div>
 
 <p class="meta">Results are simulation estimates. Small differences may be within simulation error.</p>
+{% if quarantined %}
+<p class="meta warn">Not simulated — crashes the simulator:
+{% for q in quarantined %}<a href="https://www.wowhead.com/item={{ q.item_id }}" target="_blank" rel="noopener">{{ q.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+{% endif %}
 
 <script>
 const rows = [...document.querySelectorAll('#ranking .rank-row')];

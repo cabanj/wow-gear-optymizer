@@ -79,10 +79,12 @@ async def run_full_simulation(
     # 4. candidates
     encounter_ids = {e.id: e.name for e in content.raid_encounters}
     # TODO phase 6: mplus dungeon encounters from season dungeon pool
+    skipped: list[dict] = []
     candidates = await generate_candidates(
         db, encounter_ids, worn, policy,
         max_per_slot=s.max_candidates_per_slot,
         class_name=character.class_name or "",
+        skipped=skipped,
     )
     builder_cands = [_to_builder_candidate(c, worn) for c in candidates]
 
@@ -103,6 +105,7 @@ async def run_full_simulation(
     run = SimulationRun(
         character_id=character.id, snapshot_id=snapshot.id,
         simulation_config={**sim_config, "profile_type": profile_type,
+                           "quarantined": skipped,
                            "candidates": [
                                {"profileset": c.pset or f"{c.source}_{c.item_id}_{c.slot}",
                                 "item_id": c.item_id, "name": c.name, "slot": c.slot,

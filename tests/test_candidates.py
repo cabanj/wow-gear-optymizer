@@ -125,6 +125,43 @@ def test_generate_class_filtered_no_dupes(monkeypatch):
     assert set(tk1) == {"trinket1", "trinket2"}
 
 
+def test_quarantined_item_skipped_and_reported(monkeypatch):
+    import asyncio
+    from app.loot import candidates as C
+    from app.loot.candidates import generate_candidates, quarantine_reason
+
+    assert quarantine_reason(270162)
+    assert quarantine_reason(270163) is None
+
+    async def fake_encounter(adb, enc_id):
+        return [{"item_id": 270162, "name": "Soulcoiler Ritual Vessel"},
+                {"item_id": 270163, "name": "Sszorak's Ferocity"}]
+
+    async def fake_meta(adb, item_id):
+        return {"item_class": {"name": "Armor"},
+                "item_subclass": {"name": "Miscellaneous"},
+                "inventory_type": {"name": "Trinket"}}
+
+    monkeypatch.setattr(C, "encounter_items", fake_encounter)
+    monkeypatch.setattr(C, "item_metadata", fake_meta)
+
+    async def run():
+        skipped = []
+        cands = await generate_candidates(
+            None, {1: "Boss"},
+            {"trinket1": {"item_id": 900, "item_level": 300},
+             "trinket2": {"item_id": 901, "item_level": 300}},
+            FakePolicy(), max_per_slot=3, class_name="Warlock",
+            skipped=skipped)
+        return cands, skipped
+
+    cands, skipped = asyncio.run(run())
+    ids = [c.item_id for c in cands]
+    assert 270162 not in ids
+    assert 270163 in ids
+    assert len(skipped) == 1 and skipped[0]["item_id"] == 270162
+
+
 def _meta_with_stats(cls, sub, inv, primary=None):
     stats = []
     if primary:

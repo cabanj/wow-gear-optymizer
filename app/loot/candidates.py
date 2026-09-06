@@ -116,6 +116,19 @@ SHIELD_CLASSES = {"Paladin", "Shaman", "Warrior"}
 MAX_COMBOS = 6
 
 
+# Items that crash the simulator (SIGSEGV, exit -11) when their gear string
+# is applied — verified by bisection 2026-09-06, SimC 1210-01. One bad item
+# kills the WHOLE run (all 66 profilesets), so quarantine beats data loss.
+# Re-test after each SimC image bump and drop entries that pass.
+QUARANTINED: dict[int, str] = {
+    270162: "Soulcoiler Ritual Vessel segfaults SimC 1210-01 (verified 2026-09-06)",
+}
+
+
+def quarantine_reason(item_id: int) -> str | None:
+    return QUARANTINED.get(item_id)
+
+
 async def _meta_for(db: AsyncSession, item_id: int) -> dict:
     try:
         return await item_metadata(db, item_id)
@@ -192,6 +205,7 @@ async def generate_candidates(
     policy: TrackPolicy,
     max_per_slot: int = 3,
     class_name: str = "",
+    skipped: list[dict] | None = None,   # filled with quarantined items (for the report)
 ) -> list[CandidateItem]:
     """One candidate per (item, applicable difficulty), class-filtered.
 
@@ -222,6 +236,11 @@ async def generate_candidates(
         items = await encounter_items(db, enc_id)
         for meta in items:
             item_id, name = meta["item_id"], meta["name"]
+            reason = quarantine_reason(item_id)
+            if reason is not None:
+                if skipped is not None:
+                    skipped.append({"item_id": item_id, "name": name, "reason": reason})
+                continue  # would segfault the whole run — report it, don't sim it
             imeta = await _meta_for(db, item_id)
             if not _class_allows(imeta, class_name):
                 continue
