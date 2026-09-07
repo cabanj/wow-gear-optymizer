@@ -319,6 +319,12 @@ async def run_report(db: AsyncSession, run_id) -> dict:
         boss = c.get("boss_or_dungeon") or "—"
         rep = worn_map.get(slot, {})
         sc = scale if (scale or 0) > 0 else max_delta
+        if (c.get("variant") or "") == "catalyst":
+            src_label = "Catalyst"
+        elif r["name"].startswith("mplus"):
+            src_label = ("Mythic+ " + (c.get("variant") or "")).strip()
+        else:
+            src_label = ("Raid " + (c.get("difficulty") or "")).strip()
         return {
             "rank": rank_override if rank_override is not None else r["rank"],
             "name": r["name"],
@@ -328,9 +334,7 @@ async def run_report(db: AsyncSession, run_id) -> dict:
             "item_id": c.get("item_id") or 0,
             "slot": slot, "slot_label": SLOT_LABELS.get(slot, slot),
             "source": "mplus" if r["name"].startswith("mplus") else "raid",
-            "source_label": (("Mythic+ " + (c.get("variant") or "")).strip()
-                            if r["name"].startswith("mplus")
-                            else ("Raid " + (c.get("difficulty") or "")).strip()),
+            "source_label": src_label,
             "boss": boss,
             "ilvl": (f"{c.get('item_level')} / {c.get('off_ilvl')}"
                      if c.get("off_item_id") else c.get("item_level")) or "?",

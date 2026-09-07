@@ -129,6 +129,43 @@ def quarantine_reason(item_id: int) -> str | None:
     return QUARANTINED.get(item_id)
 
 
+async def tier_piece_map(db: AsyncSession, snapshot_raw: dict,
+                         worn_items: dict[str, dict]) -> dict[str, dict]:
+    """Tier slot → {item_id, name} from the snapshot's equipped_item_sets.
+
+    The Revival Catalyst turns an eligible piece into the set piece for its
+    slot (keeping the player's set count), so every tier slot deserves a
+    mythic-tier candidate even when no boss drops cloth/... directly.
+    Slot resolution: worn slot first, else static inventory_type.
+    """
+    try:
+        sets = ((snapshot_raw or {}).get("equipment") or {}).get("equipped_item_sets") or []
+    except AttributeError:
+        return {}
+    worn_by_id = {}
+    for slot, w in (worn_items or {}).items():
+        if w.get("item_id"):
+            worn_by_id[w["item_id"]] = slot
+    out: dict[str, dict] = {}
+    for s in sets:
+        for it in (s.get("items") or []):
+            item = it.get("item") or {}
+            iid, name = item.get("id"), item.get("name") or f"tier-{item.get('id')}"
+            if not iid or not isinstance(iid, int):
+                continue
+            slot = worn_by_id.get(iid)
+            if slot is None:
+                try:
+                    imeta = await _meta_for(db, iid)
+                except Exception:
+                    continue
+                inv = (imeta.get("inventory_type") or {}).get("name", "")
+                slot = _slot_from_inv(inv)
+            if slot:
+                out.setdefault(slot, {"item_id": iid, "name": name})
+    return out
+
+
 async def _meta_for(db: AsyncSession, item_id: int) -> dict:
     try:
         return await item_metadata(db, item_id)
@@ -206,6 +243,7 @@ async def generate_candidates(
     max_per_slot: int = 3,
     class_name: str = "",
     skipped: list[dict] | None = None,   # filled with quarantined items (for the report)
+    tier_pieces: dict[str, dict] | None = None,  # slot → {item_id, name}: catalyst targets
 ) -> list[CandidateItem]:
     """One candidate per (item, applicable difficulty), class-filtered.
 
@@ -358,6 +396,32 @@ async def generate_candidates(
             ))
         for c in combo_items:
             _add(c)
+
+    # catalyzed tier: same slot as mythic, keeps the set count — the sim
+    # imports exact gear, so the tier piece at mythic ilvl prices the set
+    # bonus correctly (a non-tier mythic in a tier slot would lose 2pc/4pc)
+    for slot, tp in (tier_pieces or {}).items():
+        tid = tp["item_id"]
+        reason = quarantine_reason(tid)
+        if reason is not None:
+            if skipped is not None:
+                skipped.append({"item_id": tid, "name": tp.get("name") or f"tier-{tid}",
+                                "reason": reason})
+            continue
+        imeta = await _meta_for(db, tid)
+        if class_name and not _class_allows(imeta, class_name):
+            continue
+        mv = policy.raid_variant(tid, "mythic", None)
+        w = worn_items.get(slot, {})
+        if w.get("item_id") == tid and (w.get("item_level") or 0) >= mv["item_level"]:
+            continue  # already own it at mythic
+        inv_type = (imeta.get("inventory_type") or {}).get("name", slot)
+        _add(CandidateItem(
+            item_id=tid, name=tp.get("name") or f"tier-{tid}", slot=slot,
+            item_level=mv["item_level"], bonus_ids=mv["bonus_ids"],
+            source="raid", difficulty="mythic", variant="catalyst",
+            boss_or_dungeon="Catalyst", inventory_type=inv_type,
+        ))
 
     # cap per slot by ilvl desc, keep boss/difficulty variety on ties —
     # combos bypass the cap (already capped globally at MAX_COMBOS).

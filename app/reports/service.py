@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..blizzard.cache import cache_key, get_cached, set_cached
 from ..config import get_settings
 from ..db.models import Character, CharacterSnapshot, Report, SimulationResult, SimulationRun
-from ..loot.candidates import CandidateItem, generate_candidates, mark_raid_encounters
+from ..loot.candidates import CandidateItem, generate_candidates, mark_raid_encounters, tier_piece_map
 from ..loot.discovery import detect_current_content
 from ..loot.upgrade_rules import TrackPolicy
 from ..simc.profile_builder import Candidate, build_profileset_input
@@ -80,11 +80,13 @@ async def run_full_simulation(
     encounter_ids = {e.id: e.name for e in content.raid_encounters}
     # TODO phase 6: mplus dungeon encounters from season dungeon pool
     skipped: list[dict] = []
+    tier_map = await tier_piece_map(db, snapshot.raw, worn)
     candidates = await generate_candidates(
         db, encounter_ids, worn, policy,
         max_per_slot=s.max_candidates_per_slot,
         class_name=character.class_name or "",
         skipped=skipped,
+        tier_pieces=tier_map,
     )
     builder_cands = [_to_builder_candidate(c, worn) for c in candidates]
 

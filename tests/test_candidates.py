@@ -221,3 +221,70 @@ def test_one_variant_per_item_max_ilvl(monkeypatch):
     assert len(heads) == 1  # not 4 difficulties + vault
     assert heads[0].item_level == 334  # mythic max (FakePolicy)
     assert heads[0].source == "raid"
+
+
+def test_catalyst_tier_candidates_at_mythic(monkeypatch):
+    """Tier pieces from the snapshot become mythic Catalyst candidates."""
+    import asyncio
+    from app.loot import candidates as C
+    from app.loot.candidates import generate_candidates, tier_piece_map
+
+    async def fake_encounter(adb, enc_id):
+        return []
+
+    async def fake_meta(adb, item_id):
+        return {"item_class": {"name": "Armor"},
+                "item_subclass": {"name": "Cloth"},
+                "inventory_type": {"name": "Head"}}
+
+    monkeypatch.setattr(C, "encounter_items", fake_encounter)
+    monkeypatch.setattr(C, "item_metadata", fake_meta)
+
+    raw = {"equipment": {"equipped_item_sets": [
+        {"item_set": {"name": "Shattered Restraints"},
+         "display_string": "Shattered Restraints (4/5)",
+         "effects": [],
+         "items": [{"item": {"id": 271546, "name": "Skull of the Damned Necrolyte"}}]}]}}
+    worn = {"head": {"item_id": 271546, "item_level": 300}}
+
+    async def run():
+        tier_map = await tier_piece_map(None, raw, worn)
+        assert tier_map == {"head": {"item_id": 271546,
+                                     "name": "Skull of the Damned Necrolyte"}}
+        cands = await generate_candidates(
+            None, {1: "Boss"}, worn, FakePolicy(),
+            max_per_slot=3, class_name="Warlock", tier_pieces=tier_map)
+        return cands
+
+    cands = asyncio.run(run())
+    heads = [c for c in cands if c.item_id == 271546]
+    assert len(heads) == 1
+    assert heads[0].item_level == 334
+    assert heads[0].variant == "catalyst"
+    assert heads[0].boss_or_dungeon == "Catalyst"
+
+
+def test_catalyst_owned_at_mythic_skipped(monkeypatch):
+    import asyncio
+    from app.loot import candidates as C
+    from app.loot.candidates import generate_candidates
+
+    async def fake_encounter(adb, enc_id):
+        return []
+
+    async def fake_meta(adb, item_id):
+        return {"item_class": {"name": "Armor"},
+                "item_subclass": {"name": "Cloth"},
+                "inventory_type": {"name": "Head"}}
+
+    monkeypatch.setattr(C, "encounter_items", fake_encounter)
+    monkeypatch.setattr(C, "item_metadata", fake_meta)
+
+    async def run():
+        return await generate_candidates(
+            None, {1: "Boss"},
+            {"head": {"item_id": 271546, "item_level": 334}},
+            FakePolicy(), max_per_slot=3, class_name="Warlock",
+            tier_pieces={"head": {"item_id": 271546, "name": "Skull"}})
+
+    assert asyncio.run(run()) == []
