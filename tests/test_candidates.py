@@ -328,5 +328,5 @@ def test_dungeon_trinkets_vault_only_class_filtered(monkeypatch):
         by_id.setdefault(c.item_id, []).append(c)
     assert 302 not in by_id  # chest ignored in dungeon pool
     assert set(c.slot for c in by_id[301]) == {"trinket1", "trinket2"}
-    assert all(c.item_level == 318 and c.source == "mplus" for c in by_id[301])
+    assert all(c.item_level == 334 and c.source == "mplus" for c in by_id[301])
     assert all(c.boss_or_dungeon == "Den of Nalorakk · Nalorakk" for c in by_id[301])

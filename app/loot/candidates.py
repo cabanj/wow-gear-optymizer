@@ -358,11 +358,11 @@ async def generate_candidates(
                         inventory_type=inv_type,
                     ))
 
-    # M+ dungeon trinkets (current season pool): vault track only, same class
-    # and quarantine rules. Bypass the per-slot cap like combos — at 318 they
-    # would always lose the ilvl sort to raid 334s, yet trinket effects (not
-    # ilvl) decide upgrades. End-of-dungeon versions need verified seed
-    # numbers first, so vault-318 only for now.
+    # M+ dungeon trinkets (current season pool) at Myth 6/6 max ilvl, same
+    # class and quarantine rules as everything else. Track bonuses are
+    # track-based, not source-based, so raid-mythic numbers apply; verified
+    # live on BfA-era and Midnight IDs (exit 0, sane DPS). Bypass the
+    # per-slot cap like combos — trinket effects (not ilvl) decide upgrades.
     dungeon_items = []
     for enc_id, enc_label in (dungeon_encounters or {}).items():
         items = await encounter_items(db, enc_id)
@@ -379,7 +379,7 @@ async def generate_candidates(
             inv_type = (imeta.get("inventory_type") or {}).get("name", "")
             if _slot_from_inv(inv_type) != "trinket1":
                 continue  # dungeon pool: trinkets only (decision)
-            v = policy.mplus_variant(item_id, "great_vault")
+            v = policy.raid_variant(item_id, "mythic", None)
             pair_worn = [(worn_items.get(ws, {}).get("item_id"),
                           worn_items.get(ws, {}).get("item_level") or 0)
                          for ws in ("trinket1", "trinket2")]
