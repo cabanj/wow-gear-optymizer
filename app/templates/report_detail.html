@@ -35,11 +35,11 @@
 {% if warning %}<p class="warn">⚠ {{ warning }}</p>{% endif %}
 
 <div class="meta report-meta">Fight: <strong>{{ fight.kind }}</strong> ({{ fight.style }}, {{ fight.duration }}s, {{ fight.iterations }} iterations) · <a href="{{ fight.wiki }}" target="_blank" rel="noopener">fight style docs ↗</a></div>
-<div class="meta report-meta">Talents simmed: <strong>{{ talents.spec }}{% if talents.hero %} ({{ talents.hero }}){% endif %}</strong>{% if talents.code %} · <details><summary>loadout code</summary><code>{{ talents.code }}</code></details>{% endif %} · <a href="{{ talents.armory_url }}" target="_blank" rel="noopener">armory ↗</a></div>
+<div class="meta report-meta">Talents simmed: <strong>{{ talents.spec }}{% if talents.hero %} ({{ talents.hero }}){% endif %}</strong> · <a href="https://www.wowhead.com/talent-calc" target="_blank" rel="noopener">open in Wowhead talent calculator ↗</a> · <a href="{{ talents.armory_url }}" target="_blank" rel="noopener">armory ↗</a></div>
 {% if tier_sets %}
 {% for ts in tier_sets %}
-<div class="meta report-meta">Tier: <strong>{{ ts.name }}</strong> ({{ ts.display }}) — sim counts these set bonuses, replacing a tier piece loses them:
-{% for e in ts.effects %}<span class="{{ 'tip-effect' if e.active else '' }}">({{ e.required_count }}) {{ e.text }}</span>{% if not loop.last %} · {% endif %}{% endfor %}</div>
+<div class="meta report-meta">Tier: <strong>{{ ts.name }}</strong> ({{ ts.display }}) — sim counts these set bonuses, replacing a tier piece loses them:</div>
+{% for e in ts.effects %}<div class="meta report-meta tier-fx {{ 'tip-effect' if e.active else '' }}">({{ e.required_count }}) {{ e.text }}</div>{% endfor %}
 {% endfor %}
 {% endif %}
 
@@ -50,11 +50,6 @@
 </div>
 
 <h2>Browse by slot</h2>
-<div class="tabs" id="srctabs">
-  <button class="on" data-f="all">All</button>
-  <button data-f="raid">Raid</button>
-  <button data-f="mplus">Mythic+</button>
-</div>
 <div class="chips" id="slotchips">
   <button class="on" data-s="all">All slots</button>
   {% for val, label in slots %}<button data-s="{{ val }}">{{ label }}</button>{% endfor %}
@@ -79,20 +74,14 @@
 
 <script>
 const rows = [...document.querySelectorAll('#ranking .rank-row')];
-let src = 'all', slot = 'all';
-document.querySelectorAll('#srctabs button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('#srctabs button').forEach(x => x.classList.remove('on'));
-  b.classList.add('on'); src = b.dataset.f; apply();
-});
+let slot = 'all';
 document.querySelectorAll('#slotchips button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#slotchips button').forEach(x => x.classList.remove('on'));
   b.classList.add('on'); slot = b.dataset.s; apply();
 });
 function apply() {
   rows.forEach(tr => {
-    const okS = src === 'all' || tr.dataset.src === src;
-    const okSl = slot === 'all' || tr.dataset.slot === slot;
-    tr.style.display = (okS && okSl) ? '' : 'none';
+    tr.style.display = (slot === 'all' || tr.dataset.slot === slot) ? '' : 'none';
   });
 }
 apply();
