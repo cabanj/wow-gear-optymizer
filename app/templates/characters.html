@@ -37,13 +37,7 @@
   </aside>
   <section class="char-detail">
   {% if current %}
-  {% if latest_reports %}
-  <div class="rep-list">
-  {% if latest_reports.raid %}<a class="rep-row" href="/reports/{{ latest_reports.raid.id }}"><span class="rep-k">Raid <em>Single Target</em></span><span class="rep-v">{{ latest_reports.raid.finished_at }} ↗</span></a>{% endif %}
-  {% if latest_reports.mplus %}<a class="rep-row" href="/reports/{{ latest_reports.mplus.id }}"><span class="rep-k">Mythic+ <em>Dungeon Slice</em></span><span class="rep-v">{{ latest_reports.mplus.finished_at }} ↗</span></a>{% endif %}
-  </div>
-  {% endif %}
-{% macro socket_row(s) -%}
+  {% macro socket_row(s) -%}
 {% if s.filled %}{% set gq = 'gem-uncommon' if s.gem_quality == 'uncommon' else ('q-' + s.gem_quality if s.gem_quality else '') %}<span class="pd-sub {{ gq }}">{% if s.gem_icon %}<img class="gem-icon" src="{{ s.gem_icon }}" alt="gem" width="18" height="18" loading="lazy">{% else %}◆{% endif %} {{ s.text }}</span>
 {%- else %}<span class="pd-sub empty-sock">○ {{ s.text }}</span>{% endif %}
 {%- endmacro %}
@@ -94,6 +88,13 @@
       {% if right %}{{ gear_row(right) }}{% else %}<span></span>{% endif %}
     </div>
     {% endfor %}
+  </div>
+  {% endif %}
+  {% if latest_reports %}
+  <h3>Latest reports</h3>
+  <div class="rep-list">
+  {% if latest_reports.raid %}<a class="rep-row" href="/reports/{{ latest_reports.raid.id }}"><span class="rep-k">Raid <em>Single Target</em></span><span class="rep-v">{{ latest_reports.raid.finished_at }} ↗</span></a>{% endif %}
+  {% if latest_reports.mplus %}<a class="rep-row" href="/reports/{{ latest_reports.mplus.id }}"><span class="rep-k">Mythic+ <em>Dungeon Slice</em></span><span class="rep-v">{{ latest_reports.mplus.finished_at }} ↗</span></a>{% endif %}
   </div>
   {% endif %}
     {% if not gear_left and not gear_right %}

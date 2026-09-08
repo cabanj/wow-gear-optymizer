@@ -288,3 +288,45 @@ def test_catalyst_owned_at_mythic_skipped(monkeypatch):
             tier_pieces={"head": {"item_id": 271546, "name": "Skull"}})
 
     assert asyncio.run(run()) == []
+
+
+def test_dungeon_trinkets_vault_only_class_filtered(monkeypatch):
+    """Dungeon pool: trinkets in at vault ilvl, other slots ignored."""
+    import asyncio
+    from app.loot import candidates as C
+    from app.loot.candidates import generate_candidates
+
+    async def fake_encounter(adb, enc_id):
+        if enc_id == 9:
+            return [{"item_id": 301, "name": "dungeon trinket"},
+                    {"item_id": 302, "name": "dungeon chest"}]
+        return []
+
+    async def fake_meta(adb, item_id):
+        if item_id == 301:
+            return {"item_class": {"name": "Armor"},
+                    "item_subclass": {"name": "Miscellaneous"},
+                    "inventory_type": {"name": "Trinket"}}
+        return {"item_class": {"name": "Armor"},
+                "item_subclass": {"name": "Cloth"},
+                "inventory_type": {"name": "Chest"}}
+
+    monkeypatch.setattr(C, "encounter_items", fake_encounter)
+    monkeypatch.setattr(C, "item_metadata", fake_meta)
+
+    async def run():
+        return await generate_candidates(
+            None, {},  # no raid encounters
+            {"trinket1": {"item_id": 900, "item_level": 300},
+             "trinket2": {"item_id": 901, "item_level": 300}},
+            FakePolicy(), max_per_slot=3, class_name="Warlock",
+            dungeon_encounters={9: "Den of Nalorakk · Nalorakk"})
+
+    cands = asyncio.run(run())
+    by_id = {}
+    for c in cands:
+        by_id.setdefault(c.item_id, []).append(c)
+    assert 302 not in by_id  # chest ignored in dungeon pool
+    assert set(c.slot for c in by_id[301]) == {"trinket1", "trinket2"}
+    assert all(c.item_level == 318 and c.source == "mplus" for c in by_id[301])
+    assert all(c.boss_or_dungeon == "Den of Nalorakk · Nalorakk" for c in by_id[301])

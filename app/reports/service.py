@@ -10,7 +10,7 @@ from ..blizzard.cache import cache_key, get_cached, set_cached
 from ..config import get_settings
 from ..db.models import Character, CharacterSnapshot, Report, SimulationResult, SimulationRun
 from ..loot.candidates import CandidateItem, generate_candidates, mark_raid_encounters, tier_piece_map
-from ..loot.discovery import detect_current_content
+from ..loot.discovery import detect_current_content, mplus_dungeon_encounters
 from ..loot.upgrade_rules import TrackPolicy
 from ..simc.profile_builder import Candidate, build_profileset_input
 from ..simc.parser import compute_ranking, extract_results, extract_version, parse_json2
@@ -87,6 +87,7 @@ async def run_full_simulation(
         class_name=character.class_name or "",
         skipped=skipped,
         tier_pieces=tier_map,
+        dungeon_encounters=await mplus_dungeon_encounters(db),
     )
     builder_cands = [_to_builder_candidate(c, worn) for c in candidates]
 

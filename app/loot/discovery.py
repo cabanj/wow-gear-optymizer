@@ -141,3 +141,53 @@ async def item_icon(db: AsyncSession, item_id: int) -> str | None:
         if asset.get("key") == "icon":
             return asset.get("value")
     return None
+
+
+def _norm_dungeon_name(s: str) -> str:
+    return " ".join((s or "").lower().replace("'", "").split())
+
+
+async def mplus_dungeon_encounters(db: AsyncSession) -> dict[int, str]:
+    """Current M+ season pool → journal encounters: id → 'Dungeon · Boss'.
+
+    Pool source: connected-realm mythic leaderboards (region-wide season
+    pool, any EU realm cluster works). Journal match by normalized name.
+    {} on any failure — the run proceeds with raid loot only.
+    """
+    try:
+        return await _dungeon_encounters(db)
+    except Exception:
+        return {}
+
+
+async def _dungeon_encounters(db: AsyncSession) -> dict[int, str]:
+    from ..db.models import Character
+    from sqlalchemy import select
+
+    client = BlizzardClient()
+    realms = (await db.execute(select(Character.realm_slug).distinct())).scalars().all()
+    pool: list[str] = []
+    for realm in [*(realms or []), "shadowsong"]:
+        try:
+            r = await client.get_game_data(f"/data/wow/realm/{realm}")
+            cr = (r.get("connected_realm") or {}).get("href", "")
+            cid = cr.split("/connected-realm/")[1].split("?")[0]
+            lb = await client.get_game_data(
+                f"/data/wow/connected-realm/{cid}/mythic-leaderboard/index")
+            pool = [(e.get("name") or "") for e in lb.get("current_leaderboards", [])]
+            pool = [p for p in pool if p]
+            if pool:
+                break
+        except Exception:
+            continue
+    if not pool:
+        return {}
+    wanted = {_norm_dungeon_name(p) for p in pool}
+    out: dict[int, str] = {}
+    for inst in await _fetch_instances(db):
+        if _norm_dungeon_name(inst.get("name")) not in wanted:
+            continue
+        detail = await client.journal_instance(inst["id"])
+        for e in detail.get("encounters", []):
+            out[e["id"]] = f"{inst['name']} · {e.get('name', '')}"
+    return out

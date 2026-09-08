@@ -244,6 +244,7 @@ async def generate_candidates(
     class_name: str = "",
     skipped: list[dict] | None = None,   # filled with quarantined items (for the report)
     tier_pieces: dict[str, dict] | None = None,  # slot → {item_id, name}: catalyst targets
+    dungeon_encounters: dict[int, str] | None = None,  # enc_id → label: M+ trinket pool
 ) -> list[CandidateItem]:
     """One candidate per (item, applicable difficulty), class-filtered.
 
@@ -357,6 +358,46 @@ async def generate_candidates(
                         inventory_type=inv_type,
                     ))
 
+    # M+ dungeon trinkets (current season pool): vault track only, same class
+    # and quarantine rules. Bypass the per-slot cap like combos — at 318 they
+    # would always lose the ilvl sort to raid 334s, yet trinket effects (not
+    # ilvl) decide upgrades. End-of-dungeon versions need verified seed
+    # numbers first, so vault-318 only for now.
+    dungeon_items = []
+    for enc_id, enc_label in (dungeon_encounters or {}).items():
+        items = await encounter_items(db, enc_id)
+        for meta in items:
+            item_id, name = meta["item_id"], meta["name"]
+            reason = quarantine_reason(item_id)
+            if reason is not None:
+                if skipped is not None:
+                    skipped.append({"item_id": item_id, "name": name, "reason": reason})
+                continue
+            imeta = await _meta_for(db, item_id)
+            if not _class_allows(imeta, class_name):
+                continue
+            inv_type = (imeta.get("inventory_type") or {}).get("name", "")
+            if _slot_from_inv(inv_type) != "trinket1":
+                continue  # dungeon pool: trinkets only (decision)
+            v = policy.mplus_variant(item_id, "great_vault")
+            pair_worn = [(worn_items.get(ws, {}).get("item_id"),
+                          worn_items.get(ws, {}).get("item_level") or 0)
+                         for ws in ("trinket1", "trinket2")]
+            if any(wid == item_id and (wil or 0) >= v["item_level"]
+                   for wid, wil in pair_worn):
+                continue  # same trinket worn at equal/higher ilvl
+            for tgt in ("trinket1", "trinket2"):
+                key = (item_id, v["item_level"], tgt)
+                if key in seen:
+                    continue
+                seen.add(key)
+                dungeon_items.append(CandidateItem(
+                    item_id=item_id, name=name, slot=tgt,
+                    item_level=v["item_level"], bonus_ids=v["bonus_ids"],
+                    source="mplus", difficulty="mythic", variant="great_vault",
+                    boss_or_dungeon=enc_label, inventory_type=inv_type,
+                ))
+
     # 1H + off-hand combos (staff challengers): same-tier pairs only,
     # top ilvl sums win, capped — a cartesian of everything would explode sims
     worn_mh = worn_items.get("main_hand", {})
@@ -438,6 +479,7 @@ async def generate_candidates(
         top = [c for c in rest if c.item_level == top_ilvl]
         lower = [c for c in rest if c.item_level < top_ilvl][:max_per_slot]
         out.extend(fixed + top + lower)
+    out.extend(dungeon_items)  # cap-exempt, like combos (see above)
     out.sort(key=lambda c: -c.item_level)
     return out
 
