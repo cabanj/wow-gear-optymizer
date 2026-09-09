@@ -48,7 +48,8 @@ async def run_full_simulation(
 
     # 1. current content (cached via api_cache by discovery functions)
     content = await detect_current_content(db)
-    mark_raid_encounters([e.id for e in content.raid_encounters])
+    mark_raid_encounters([e.id for e in content.raid_encounters]
+                         + [e.id for e in content.lair_encounters])
 
     # 2. season seed
     seed_path = "/data/seed/season-seed-midnight-s2.json"  # mounted in compose
@@ -76,8 +77,9 @@ async def run_full_simulation(
             "enchant_id": (item.get("enchant") or {}).get("id") if item.get("enchant") else None,
         }
 
-    # 4. candidates
+    # 4. candidates (main raid + current lair raid, e.g. Tidebound Grotto)
     encounter_ids = {e.id: e.name for e in content.raid_encounters}
+    encounter_ids.update({e.id: e.name for e in content.lair_encounters})
     # TODO phase 6: mplus dungeon encounters from season dungeon pool
     skipped: list[dict] = []
     tier_map = await tier_piece_map(db, snapshot.raw, worn)

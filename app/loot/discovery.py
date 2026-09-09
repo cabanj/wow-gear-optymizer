@@ -24,6 +24,7 @@ class CurrentContent:
     raid_instance_id: int
     raid_name: str
     raid_encounters: list[Encounter] = field(default_factory=list)
+    lair_encounters: list[Encounter] = field(default_factory=list)
     mplus_season_id: int | None = None
     mplus_season_name: str | None = None
     mplus_dungeon_instance_ids: list[int] = field(default_factory=list)
@@ -89,6 +90,28 @@ async def detect_current_content(db: AsyncSession) -> CurrentContent:
         ],
         mplus_season_id=season_id,
     )
+
+    # --- current lair raid (1-boss, e.g. Tidebound Grotto): newest _is_raid
+    # instance at/below the main raid with ≤2 encounters. Older lairs
+    # (Dreamrift) stay excluded; their loot would get fantasy ilvls.
+    if raid:
+        lair = None
+        for inst in sorted(instances, key=lambda i: i["id"], reverse=True):
+            if not (raid["id"] - 10 <= inst["id"] <= raid["id"]):
+                continue
+            detail_key = cache_key(f"journal-instance/{inst['id']}", {})
+            detail = await get_cached(db, detail_key)
+            if detail is None:
+                detail = await client.journal_instance(inst["id"])
+                await set_cached(db, detail_key, detail, get_settings().cache_ttl_journal)
+            if (detail["id"] != raid["id"] and _is_raid(detail)
+                    and len(detail.get("encounters", [])) <= 2):
+                lair = detail
+                break
+        if lair:
+            content.lair_encounters = [
+                Encounter(e["id"], e["name"]) for e in lair.get("encounters", [])
+            ]
 
     if season_id:
         season = await client.mythic_keystone_season(season_id)
