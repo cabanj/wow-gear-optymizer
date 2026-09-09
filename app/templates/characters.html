@@ -93,19 +93,19 @@
   {% if latest_reports %}
   <div class="rep-sim-grid">
   <div>
-  <h3>Latest reports</h3>
-  <div class="rep-list">
-  {% if latest_reports.raid %}<a class="rep-row" href="/reports/{{ latest_reports.raid.id }}"><span class="rep-k">Raid - <em>Single Target</em></span><span class="rep-v">{{ latest_reports.raid.finished_at }} ↗</span></a>{% endif %}
-  {% if latest_reports.mplus %}<a class="rep-row" href="/reports/{{ latest_reports.mplus.id }}"><span class="rep-k">Mythic+ - <em>Dungeon Slice</em></span><span class="rep-v">{{ latest_reports.mplus.finished_at }} ↗</span></a>{% endif %}
-  </div>
-  </div>
-  <div>
   <h3>Simulate</h3>
     <div class="sim-row sim-col">
       <button class="btn ghost" data-sim="raid">Simulate Raid</button>
       <button class="btn ghost" data-sim="mplus">Simulate Mythic+</button>
     </div>
     <span class="meta" id="sim-msg"></span>
+  </div>
+  <div>
+  <h3>Latest reports</h3>
+  <div class="rep-list">
+  {% if latest_reports.raid %}<a class="rep-row" href="/reports/{{ latest_reports.raid.id }}"><span class="rep-k">Raid - <em>Single Target</em></span><span class="rep-v">{{ latest_reports.raid.finished_at }} ↗</span></a>{% endif %}
+  {% if latest_reports.mplus %}<a class="rep-row" href="/reports/{{ latest_reports.mplus.id }}"><span class="rep-k">Mythic+ - <em>Dungeon Slice</em></span><span class="rep-v">{{ latest_reports.mplus.finished_at }} ↗</span></a>{% endif %}
+  </div>
   </div>
   </div>
   {% else %}
