@@ -143,9 +143,9 @@ def test_snapshot_sets_only_active_bonuses():
 
 def test_track_of_bonus_list():
     from app.reports.pages import track_of, TRACK_BY_BONUS
-    assert track_of([8902, 7756, 13662, 12699, 12842]) == "myth"
-    assert track_of([13690, 6652, 13698, 12843]) == "myth"
-    assert track_of([6652, 13662, 12838]) == "hero"
+    assert track_of([8902, 7756, 13662, 12699, 12842]) == "hero"
+    assert track_of([13690, 6652, 13698, 12843]) == "hero"
+    assert track_of([6652, 13662, 12838]) == "champion"
     assert track_of([6652, 13334, 12849]) == "myth"
     assert track_of([12214, 12497, 13751]) is None  # crafted, no track
     assert track_of([]) is None

@@ -37,15 +37,15 @@ SECONDARY_STATS = {"CRIT_RATING", "HASTE_RATING", "MASTERY_RATING", "VERSATILITY
 
 
 # Worn-item bonus_id → upgrade track. Verified 2026-09-09 against SimC
-# item_bonus.inc (bonus type 34): 614=Veteran, 615=Champion, 616=Hero,
-# 617/618=Myth. 13335 (final-boss ilvl bump) has no type-34 row; it always
-# pairs with the Myth 12854 marker, so it maps to myth as well.
+# item_bonus.inc AND live gear (back 308 = Hero, feet 308 = Champion):
+# type-34 pairs (614..618 / 971..978) decode to Veteran / Champion /
+# Champion / Hero / Myth. 13335 (final-boss ilvl bump) has no type-34 row;
+# it always pairs with the Myth 12854 marker, so it maps to myth as well.
 TRACK_BY_BONUS = {
     12824: "veteran",
-    12832: "champion",
-    12838: "hero",
-    12842: "myth", 12843: "myth", 12844: "myth", 12845: "myth",
-    12846: "myth", 12849: "myth", 12854: "myth", 13335: "myth",
+    12832: "champion", 12838: "champion",
+    12842: "hero", 12843: "hero", 12844: "hero", 12845: "hero",
+    12846: "hero", 12849: "myth", 12854: "myth", 13335: "myth",
 }
 
 
