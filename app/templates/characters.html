@@ -47,7 +47,7 @@
 {%- endmacro %}
 {% macro gear_row(g) -%}
       <a class="gear-row" href="https://www.wowhead.com/item={{ g.item_id }}" target="_blank" rel="noopener" title="{{ g.name }}">
-        <span class="gear-ilvl">{{ g.ilvl }}</span>
+        <span class="gear-ilvl{% if g.track %} trk-{{ g.track }}{% endif %}">{{ g.ilvl }}</span>
         {% if g.icon %}<img src="{{ g.icon }}" alt="{{ g.name }}" width="56" height="56" loading="lazy">{% else %}<span class="noicon">{{ g.slot_label[0] }}</span>{% endif %}
         <span class="pd-info">
           <span class="gear-name q-{{ g.quality }}">{{ g.name }}</span>

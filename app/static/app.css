@@ -80,6 +80,9 @@ button.btn { font-family: inherit; font-size: .9rem; line-height: 1.2; }
 .rank-name { font-weight: 600; }
 .rank-sub { color: var(--muted); font-size: .8rem; margin-top: .1rem; }
 .q-epic { color: var(--epic); } .q-rare { color: var(--rare); }
+/* worn ilvl colored by upgrade track (wowhead quality colors) */
+.trk-veteran { color: var(--uncommon); } .trk-champion { color: var(--rare); }
+.trk-hero { color: var(--epic); } .trk-myth { color: var(--legendary); }
 .q-uncommon { color: var(--uncommon); } .q-legendary { color: var(--legendary); }
 .rank-delta { text-align: right; }
 .rank-delta .d { font-size: 1.05rem; font-weight: 700; }

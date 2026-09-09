@@ -139,3 +139,16 @@ def test_snapshot_sets_only_active_bonuses():
     assert all(e["active"] for e in sets[0]["effects"])
     assert len(sets[0]["effects"]) == 2
     assert _snapshot_sets(SimpleNamespace(raw={})) == []
+
+
+def test_track_of_bonus_list():
+    from app.reports.pages import track_of, TRACK_BY_BONUS
+    assert track_of([8902, 7756, 13662, 12699, 12842]) == "myth"
+    assert track_of([13690, 6652, 13698, 12843]) == "myth"
+    assert track_of([6652, 13662, 12838]) == "hero"
+    assert track_of([6652, 13334, 12849]) == "myth"
+    assert track_of([12214, 12497, 13751]) is None  # crafted, no track
+    assert track_of([]) is None
+    assert track_of(None) is None
+    assert TRACK_BY_BONUS[12824] == "veteran"
+    assert TRACK_BY_BONUS[12832] == "champion"

@@ -36,6 +36,28 @@ SECONDARY_STATS = {"CRIT_RATING", "HASTE_RATING", "MASTERY_RATING", "VERSATILITY
                    "AVOIDANCE", "LEECH", "SPEED", "STURDINESS"}
 
 
+# Worn-item bonus_id → upgrade track. Verified 2026-09-09 against SimC
+# item_bonus.inc (bonus type 34): 614=Veteran, 615=Champion, 616=Hero,
+# 617/618=Myth. 13335 (final-boss ilvl bump) has no type-34 row; it always
+# pairs with the Myth 12854 marker, so it maps to myth as well.
+TRACK_BY_BONUS = {
+    12824: "veteran",
+    12832: "champion",
+    12838: "hero",
+    12842: "myth", 12843: "myth", 12844: "myth", 12845: "myth",
+    12846: "myth", 12849: "myth", 12854: "myth", 13335: "myth",
+}
+
+
+def track_of(bonus_list: list[int] | None) -> str | None:
+    """Upgrade track of a worn item from its armory bonus_list (or None)."""
+    for b in bonus_list or []:
+        t = TRACK_BY_BONUS.get(b)
+        if t:
+            return t
+    return None
+
+
 def _pretty_stats(simc_gear_item: dict) -> list[dict]:
     """[{'text': '+148 Intellect', 'sec': False}, ...] from SimC json2 gear."""
     if not simc_gear_item:
@@ -187,6 +209,7 @@ async def character_gear(db: AsyncSession, character_id) -> list[dict]:
             "item_id": item_id,
             "name": it.get("name") or item.get("name") or f"Item {item_id}",
             "ilvl": (it.get("level") or {}).get("value") or "?",
+            "track": track_of(it.get("bonus_list") or []),
             "quality": {"epic": "epic", "rare": "rare", "uncommon": "uncommon",
                         "legendary": "legendary", "artifact": "legendary",
                         "heirloom": "rare"}.get(mq, ""),
