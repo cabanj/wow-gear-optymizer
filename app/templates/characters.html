@@ -143,7 +143,7 @@ document.getElementById('refresh').onclick = async () => {
   const m = document.getElementById('msg2');
   m.textContent = 'Refreshing…';
   const r = await fetch('/api/characters/refresh', {method: 'POST'});
-  if (r.ok) { m.textContent = 'Done — reloading…'; setTimeout(() => location.reload(), 800); return; }
+  if (r.ok) { const j = await r.json().catch(() => ({})); m.textContent = 'Done (' + (j.snapshots ?? '?') + ' snapshots) — reloading…'; setTimeout(() => location.reload(), 800); return; }
   // 401 with login_url means the Blizzard token died (they last 24h and
   // Blizzard issues no refresh token) — point at the login instead of a code
   let login = null;

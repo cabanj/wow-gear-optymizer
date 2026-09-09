@@ -351,7 +351,11 @@ async def run_report(db: AsyncSession, run_id) -> dict:
         return {
             "rank": rank_override if rank_override is not None else r["rank"],
             "name": r["name"],
-            "item_name": c.get("name") or r["name"],
+            "item_name": (f"{c.get('catalyst_from_name')} → {c.get('name')}"
+                          if (c.get("variant") == "catalyst"
+                              and c.get("catalyst_from_name"))
+                          else (c.get("name") or r["name"])),
+            "is_catalyst": c.get("variant") == "catalyst",
             "off_name": c.get("off_name") or "",
             "off_item_id": c.get("off_item_id") or 0,
             "item_id": c.get("item_id") or 0,

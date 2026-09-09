@@ -6,7 +6,7 @@
     <div class="rank-pos">#{{ r.rank }}</div>
     <div>
       <div class="rank-name q-{{ r.quality }}">{{ r.item_name }}{% if r.off_name %} + {{ r.off_name }}{% endif %}</div>
-      <div class="rank-sub">{{ r.slot_label }} · {{ r.boss }} · ilvl {{ r.ilvl }} · replaces
+      <div class="rank-sub">{{ r.slot_label }} · {{ r.boss }}{% if r.is_catalyst %} · Catalyst{% endif %} · ilvl {{ r.ilvl }} · replaces
         {% if r.replaces_item_id %}<a class="rep-link" href="https://www.wowhead.com/item={{ r.replaces_item_id }}" target="_blank" rel="noopener">{{ r.replaces }}<span class="mini-tip">{{ r.replaces }}<br>Item Level {{ r.replaces_ilvl }}<br><span class="tip-hint">Click for Wowhead ↗</span></span></a>{% else %}{{ r.replaces }}{% endif %}
       </div>
       <div class="bar"><i style="width:{{ r.bar_pct }}%"></i></div>

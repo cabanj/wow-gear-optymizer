@@ -330,3 +330,42 @@ def test_dungeon_trinkets_vault_only_class_filtered(monkeypatch):
     assert set(c.slot for c in by_id[301]) == {"trinket1", "trinket2"}
     assert all(c.item_level == 334 and c.source == "mplus" for c in by_id[301])
     assert all(c.boss_or_dungeon == "Den of Nalorakk · Nalorakk" for c in by_id[301])
+
+
+def test_catalyst_tier_links_source_piece(monkeypatch):
+    """Tier candidate records which same-slot piece it catalyzes."""
+    import asyncio
+    from app.loot import candidates as C
+    from app.loot.candidates import generate_candidates
+
+    async def fake_encounter(adb, enc_id):
+        return [{"item_id": 101, "name": "Raid Helm"}]
+
+    async def fake_meta(adb, item_id):
+        return {"item_class": {"name": "Armor"},
+                "item_subclass": {"name": "Cloth"},
+                "inventory_type": {"name": "Head"}}
+
+    monkeypatch.setattr(C, "encounter_items", fake_encounter)
+    monkeypatch.setattr(C, "item_metadata", fake_meta)
+
+    async def run(tier):
+        return await generate_candidates(
+            None, {1: "Boss"},
+            {"head": {"item_id": 900, "item_level": 300}},
+            FakePolicy(), max_per_slot=3, class_name="Warlock",
+            tier_pieces=tier)
+
+    cands = asyncio.run(run({"head": {"item_id": 501, "name": "Tier Helm"}}))
+    tier = [c for c in cands if c.item_id == 501]
+    assert len(tier) == 1
+    assert tier[0].boss_or_dungeon == "Boss"
+    assert tier[0].catalyst_from_name == "Raid Helm"
+    assert tier[0].catalyst_from_boss == "Boss"
+
+    # no same-slot source → plain Catalyst label, no arrow parts
+    cands2 = asyncio.run(run({"feet": {"item_id": 502, "name": "Tier Boots"}}))
+    t2 = [c for c in cands2 if c.item_id == 502]
+    assert len(t2) == 1
+    assert t2[0].boss_or_dungeon == "Catalyst"
+    assert t2[0].catalyst_from_name == ""

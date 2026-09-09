@@ -287,7 +287,20 @@ async def api_refresh_characters(user: User | None = Depends(get_current_user),
         # dead/expired user token (Blizzard issues none that refresh) —
         # only a fresh browser login mints new tokens
         raise HTTPException(401, {"message": str(e), "login_url": "/auth/blizzard"})
-    return {"count": len(chars), "characters": chars}
+    # refresh snapshots too — the character page gear comes from snapshots,
+    # discovery alone would leave stale gear on screen
+    from .characters.service import snapshot_character
+    snapped = 0
+    for c in (await db.execute(
+        select(Character).where(Character.blizzard_account_id == account.id,
+                                Character.selected.is_(True))
+    )).scalars().all():
+        try:
+            await snapshot_character(db, c, account)
+            snapped += 1
+        except Exception:
+            continue
+    return {"count": len(chars), "characters": chars, "snapshots": snapped}
 
 
 @app.post("/api/characters/{character_id}/snapshot")

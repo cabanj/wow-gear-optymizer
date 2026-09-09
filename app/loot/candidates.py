@@ -100,6 +100,8 @@ class CandidateItem:
     off_ilvl: int = 0
     off_bonus_ids: list[int] | None = None
     off_boss: str = ""
+    catalyst_from_name: str = ""  # catalyst display: which piece converts
+    catalyst_from_boss: str = ""  # ...and where that piece drops
 
     def __post_init__(self):
         if not self.pset:
@@ -457,11 +459,19 @@ async def generate_candidates(
         if w.get("item_id") == tid and (w.get("item_level") or 0) >= mv["item_level"]:
             continue  # already own it at mythic
         inv_type = (imeta.get("inventory_type") or {}).get("name", slot)
+        # catalyst source: the highest-ilvl non-tier candidate in this slot
+        # is the piece you'd actually convert (display only, sim uses tier)
+        srcs = [c for c in buckets.get(slot, [])
+                if "combo" not in (c.pset or "") and c.item_id != tid]
+        src = max(srcs, key=lambda c: c.item_level) if srcs else None
         _add(CandidateItem(
             item_id=tid, name=tp.get("name") or f"tier-{tid}", slot=slot,
             item_level=mv["item_level"], bonus_ids=mv["bonus_ids"],
             source="raid", difficulty="mythic", variant="catalyst",
-            boss_or_dungeon="Catalyst", inventory_type=inv_type,
+            boss_or_dungeon=(src.boss_or_dungeon if src else "Catalyst"),
+            inventory_type=inv_type,
+            catalyst_from_name=src.name if src else "",
+            catalyst_from_boss=src.boss_or_dungeon if src else "",
         ))
 
     # cap per slot by ilvl desc, keep boss/difficulty variety on ties —

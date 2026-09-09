@@ -120,7 +120,9 @@ async def run_full_simulation(
                                 "boss_or_dungeon": c.boss_or_dungeon,
                                 "inventory_type": c.inventory_type,
                                 "off_item_id": c.off_item_id, "off_name": c.off_name,
-                                "off_ilvl": c.off_ilvl}
+                                "off_ilvl": c.off_ilvl,
+                                "catalyst_from_name": c.catalyst_from_name,
+                                "catalyst_from_boss": c.catalyst_from_boss}
                                for c in candidates
                            ]},
         profile=profile, status="pending",
