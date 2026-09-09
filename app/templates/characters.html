@@ -97,6 +97,14 @@
   {% if latest_reports.mplus %}<a class="rep-row" href="/reports/{{ latest_reports.mplus.id }}"><span class="rep-k">Mythic+ - <em>Dungeon Slice</em></span><span class="rep-v">{{ latest_reports.mplus.finished_at }} ↗</span></a>{% endif %}
   </div>
   {% endif %}
+  <h3>Simulate</h3>
+  <div class="rep-list">
+    <div class="sim-row">
+      <button class="btn ghost" data-sim="raid">Simulate Raid</button>
+      <button class="btn ghost" data-sim="mplus">Simulate Mythic+</button>
+    </div>
+    <span class="meta" id="sim-msg"></span>
+  </div>
     {% if not gear_left and not gear_right %}
     <div class="empty"><p>No gear snapshot for this character yet.</p></div>
     {% endif %}
@@ -130,6 +138,21 @@ document.getElementById('refresh').onclick = async () => {
   m.innerHTML = login ? 'Blizzard login expired — <a href="' + login + '">log in again</a>, then Refresh.'
                       : 'Refresh failed (' + r.status + ')';
 };
+{% if current %}
+document.querySelectorAll('[data-sim]').forEach(b => b.onclick = async () => {
+  const m = document.getElementById('sim-msg');
+  const ptype = b.dataset.sim;
+  m.textContent = 'Starting ' + ptype + ' simulation…';
+  const r = await fetch('/api/simulate/{{ current.id }}', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({profile_type: ptype}),
+  });
+  let msg = '';
+  try { const j = await r.json(); msg = (j.detail && j.detail.message) || j.detail || ''; } catch (e) {}
+  m.textContent = r.ok ? 'Simulation queued — results appear under Latest reports when done.'
+                       : (msg || 'Failed (' + r.status + ')');
+});
+{% endif %}
 document.querySelectorAll('.sim-toggle').forEach(tg => tg.onclick = async (e) => {
   e.preventDefault(); e.stopPropagation();
   const on = tg.getAttribute('aria-checked') !== 'true';

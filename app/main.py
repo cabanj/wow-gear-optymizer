@@ -339,6 +339,20 @@ async def api_simulate(character_id: str, request: Request,
     if snap is None:
         raise HTTPException(400, "no snapshot; import character first")
     from .reports.service import run_full_simulation
+    from .db.models import SimulationRun as _SR2
+    active = (await db.execute(
+        select(_SR2).where(
+            _SR2.character_id == character_id,
+            _SR2.status.in_(("pending", "running")),
+            _SR2.simulation_config.op("->>")("profile_type") == profile_type,
+        )
+    )).scalars().first()
+    if active is not None:
+        raise HTTPException(409, {
+            "message": f"{profile_type} simulation already {active.status} — "
+                       "wait for it to finish before starting a new one.",
+            "run_id": str(active.id), "status": active.status,
+        })
     run_id = await run_full_simulation(db, char, snap, profile_type)
     return {"run_id": str(run_id), "status": "pending"}
 

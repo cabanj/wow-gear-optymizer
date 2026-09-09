@@ -193,6 +193,8 @@ button.btn { font-family: inherit; font-size: .9rem; line-height: 1.2; }
 .rep-row .rep-k { font-weight: 600; }
 .rep-row .rep-k em { font-style: normal; font-weight: 400; color: var(--muted); }
 .rep-row .rep-v { color: var(--muted); white-space: nowrap; }
+.sim-row { display: flex; gap: .5rem; flex-wrap: wrap; }
+.sim-row .btn { min-height: 2.2rem; padding: .45rem .9rem; }
 /* armory-like tooltip */
 .gear-row { position: relative; }
 .gear-row .tip { display: none; position: absolute; left: 3rem; top: 100%; z-index: 20;
