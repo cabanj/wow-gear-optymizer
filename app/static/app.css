@@ -195,6 +195,16 @@ button.btn { font-family: inherit; font-size: .9rem; line-height: 1.2; }
 .rep-row .rep-v { color: var(--muted); white-space: nowrap; }
 .sim-row { display: flex; gap: .5rem; flex-wrap: wrap; }
 .sim-row .btn { min-height: 2.2rem; padding: .45rem .9rem; }
+.sim-col { flex-direction: column; }
+.sim-col .btn { width: 100%; box-sizing: border-box; }
+/* reports + simulate side by side (Linear-style quiet grid) */
+.rep-sim-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.2rem;
+  margin: 0 0 .9rem; }
+.rep-sim-grid h3 { margin-top: 0; }
+.rep-sim-grid .rep-list { margin: 0; }
+@media (max-width: 700px) {
+  .rep-sim-grid { grid-template-columns: 1fr; }
+}
 /* armory-like tooltip */
 .gear-row { position: relative; }
 .gear-row .tip { display: none; position: absolute; left: 3rem; top: 100%; z-index: 20;
