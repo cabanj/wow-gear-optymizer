@@ -35,7 +35,7 @@
 {% if warning %}<p class="warn">⚠ {{ warning }}</p>{% endif %}
 
 <div class="meta report-meta">Fight: <strong>{{ fight.kind }}</strong> ({{ fight.style }}, {{ fight.duration }}s, {{ fight.iterations }} iterations) · <a href="{{ fight.wiki }}" target="_blank" rel="noopener">fight style docs ↗</a></div>
-<div class="meta report-meta">Talents simmed: <strong>{{ talents.spec }}{% if talents.hero %} ({{ talents.hero }}){% endif %}</strong> · <a href="https://www.wowhead.com/talent-calc" target="_blank" rel="noopener">open in Wowhead talent calculator ↗</a> · <a href="{{ talents.armory_url }}" target="_blank" rel="noopener">armory ↗</a></div>
+<div class="meta report-meta">Talents simmed: <strong>{{ talents.spec }}{% if talents.hero %} ({{ talents.hero }}){% endif %}</strong> · <a href="{{ talents.armory_url }}" target="_blank" rel="noopener">armory ↗</a></div>
 {% if tier_sets %}
 {% for ts in tier_sets %}
 <div class="meta report-meta">Tier: <strong>{{ ts.name }}</strong> ({{ ts.display }}) — sim counts these set bonuses, replacing a tier piece loses them:</div>
