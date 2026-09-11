@@ -184,7 +184,9 @@ def test_class_allows_primary_stat():
     assert _class_allows(int_staff, "Warlock")
     assert _class_allows(ring, "Warlock")  # jewelry has no primary — keep
     assert _class_allows(int_cloth, "Warlock")
-    assert not _class_allows(str_cloth, "Warlock")
+    # armor adapts: preview stat is not authoritative for armor (a STR cloth
+    # piece cannot exist in game; the armor-TYPE gate does the real work)
+    assert _class_allows(str_cloth, "Warlock")
     assert _class_allows(agi_dagger, "Rogue")
     assert _class_allows(agi_dagger, "Druid")  # hybrid allows both
     assert _class_allows(int_dagger, "Druid")
@@ -369,3 +371,28 @@ def test_catalyst_tier_links_source_piece(monkeypatch):
     assert len(t2) == 1
     assert t2[0].boss_or_dungeon == "Catalyst"
     assert t2[0].catalyst_from_name == ""
+
+
+def _meta_with_negated(cls, sub, inv):
+    return {"item_class": {"name": cls}, "item_subclass": {"name": sub},
+            "inventory_type": {"name": inv},
+            "preview_item": {"stats": [
+                {"type": {"type": "INTELLECT"}, "value": 65},
+                {"type": {"type": "AGILITY"}, "value": 65, "is_negated": True},
+                {"type": {"type": "STAMINA"}, "value": 500}]}}
+
+
+def test_armor_primary_adapts_to_class():
+    from app.loot.candidates import _class_allows, _primary_stat
+    leather = _meta_with_negated("Armor", "Leather", "Chest")
+    assert _primary_stat(leather) == "INTELLECT"  # negated agi skipped
+    assert _class_allows(leather, "Rogue")   # leather gives agi
+    assert _class_allows(leather, "Druid")   # leather gives agi/int
+    assert not _class_allows(leather, "Warrior")  # can't wear leather at all
+    cloth = _meta_with_negated("Armor", "Cloth", "Head")
+    assert _class_allows(cloth, "Warlock")
+    assert not _class_allows(cloth, "Warrior")  # no STR on cloth
+    assert not _class_allows(cloth, "Rogue")    # can't wear cloth
+    plate = _meta_with_negated("Armor", "Plate", "Chest")
+    assert _class_allows(plate, "Paladin")
+    assert not _class_allows(plate, "Rogue")

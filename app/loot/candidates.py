@@ -182,13 +182,19 @@ def _class_allows(meta: dict, class_name: str) -> bool:
     inv = (meta.get("inventory_type") or {}).get("name", "")
     if _is_offhand_inv(inv):
         if isc in ("Shield", "Shields"):
-            return class_name in SHIELD_CLASSES
+            return class_name in SHIELD_CLASSES and _primary_ok(meta, class_name)
         return class_name in OH_CLASSES
     if ic == "Armor":
         allowed = CLASS_ARMOR.get(class_name, ())
         if not (isc in allowed or isc in ARMOR_MISC):
             return False
-        return _primary_ok(meta, class_name) if isc not in ARMOR_MISC else True
+        if isc in ARMOR_MISC:
+            return True
+        # Retail armor adapts its primary stat to the wearer's class, so the
+        # preview's active stat is meaningless (Blizzard lists INT active +
+        # AGI/STR `is_negated`). Gate on armor-type-implied primaries instead.
+        want = CLASS_PRIMARY.get(class_name, PRIMARY_STATS)
+        return any(p in want for p in ARMOR_PRIMARY.get(isc, ()))
     if ic == "Weapon":
         allowed = CLASS_WEAPONS.get(class_name, DEFAULT_WEAPONS)
         if isc not in allowed:
@@ -212,12 +218,28 @@ CLASS_PRIMARY = {
 }
 PRIMARY_STATS = ("STRENGTH", "AGILITY", "INTELLECT")
 
+# Retail armor adapts primary to the wearer: which primaries each armor
+# type can provide. Used instead of the (meaningless) preview active stat.
+ARMOR_PRIMARY = {
+    "Cloth": ("INTELLECT",),
+    "Leather": ("AGILITY", "INTELLECT"),
+    "Mail": ("AGILITY", "INTELLECT"),
+    "Plate": ("STRENGTH", "INTELLECT"),
+}
+
 
 def _primary_stat(meta: dict) -> str | None:
     """Primary stat from the static item preview (presence matters, not value —
-    the template is low-ilvl but INT vs AGI/STR never changes with scaling)."""
+    the template is low-ilvl but INT vs AGI/STR never changes with scaling).
+
+    Skips `is_negated` entries: Blizzard lists the off-spec primary too
+    (grayed out), only the active one describes the item (matters for
+    weapons/shields, whose stats are fixed — armor adapts, see above).
+    """
     stats = ((meta.get("preview_item") or {}).get("stats") or [])
     for s in stats:
+        if s.get("is_negated"):
+            continue
         t = ((s.get("type") or {}).get("type") or "")
         if t in PRIMARY_STATS and (s.get("value") or 0) > 0:
             return t
