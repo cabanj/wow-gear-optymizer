@@ -370,6 +370,8 @@ async def run_report(db: AsyncSession, run_id) -> dict:
             "replaces_item_id": rep.get("item_id", 0),
             "replaces_ilvl": rep.get("ilvl", "?"),
             "quality": await _quality(db, c.get("item_id") or 0),
+            "icon": await item_icon(db, c.get("item_id") or 0),
+            "off_icon": await item_icon(db, c.get("off_item_id") or 0),
             "stats": "",
             "dps_fmt": _fmt(r["dps"]), "median_fmt": _fmt(data["ranking"] and r.get("dps", 0)),
             "delta_fmt": _fmt(r["delta_dps"]), "pct_fmt": f"{r['delta_percent']:.2f}",

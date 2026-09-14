@@ -73,8 +73,9 @@ button.btn { font-family: inherit; font-size: .9rem; line-height: 1.2; }
 .rank-row { background: var(--panel); border: 1px solid var(--border); border-radius: .55rem;
   margin: .45rem 0; overflow: hidden; }
 .rank-row.rank-1 { border-color: #2c5a34; background: #12241a; }
-.rank-main { display: grid; grid-template-columns: 2.6rem 1fr auto; gap: .6rem;
+.rank-main { display: grid; grid-template-columns: 2.6rem auto 1fr auto; gap: .6rem;
   padding: .6rem .8rem; cursor: pointer; align-items: center; }
+.rank-icon { width: 2.25rem; height: 2.25rem; border-radius: .35rem; }
 .rank-pos { font-size: 1.15rem; font-weight: 700; color: var(--muted); }
 .rank-1 .rank-pos { color: var(--up); }
 .rank-name { font-weight: 600; }
@@ -257,7 +258,7 @@ table.runs tr.latest td:first-child { box-shadow: inset 3px 0 0 var(--up); }
 .fresh { color: var(--up); font-size: .72rem; font-weight: 700; }
 @media (max-width: 700px) {
   main { padding: .8rem .6rem 2.5rem; }
-  .rank-main { grid-template-columns: 2rem 1fr auto; }
+  .rank-main { grid-template-columns: 2rem auto 1fr auto; }
   .hunt-bar { flex-wrap: wrap; }
   .hunt-bar .hunt-dps, .hunt-bar .hunt-base { text-align: left; }
 }

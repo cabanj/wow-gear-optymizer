@@ -4,6 +4,7 @@
 <div class="rank-row{% if r.rank == 1 %} rank-1{% endif %}" data-src="{{ r.source }}" data-slot="{{ r.slot }}">
   <div class="rank-main">
     <div class="rank-pos">#{{ r.rank }}</div>
+    {% if r.icon %}<img class="rank-icon" src="{{ r.icon }}" alt="" width="36" height="36" loading="lazy">{% endif %}
     <div>
       <div class="rank-name q-{{ r.quality }}">{{ r.item_name }}{% if r.off_name %} + {{ r.off_name }}{% endif %}</div>
       <div class="rank-sub">{{ r.slot_label }} · {{ r.boss }}{% if r.is_catalyst %} · Catalyst{% endif %} · ilvl {{ r.ilvl }} · replaces
