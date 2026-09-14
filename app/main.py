@@ -19,6 +19,20 @@ from .scheduler.daily import create_scheduler
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _css_version() -> str:
+    """Cache-buster for app.css (content hash); browsers otherwise hold
+    stale rules and new components render unstyled/wrong-sized."""
+    try:
+        import hashlib
+        h = hashlib.md5(open("app/static/app.css", "rb").read()).hexdigest()[:8]
+        return h
+    except OSError:
+        return "dev"
+
+
+templates.env.globals["css_v"] = _css_version()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     engine = make_engine()

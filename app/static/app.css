@@ -76,6 +76,8 @@ button.btn { font-family: inherit; font-size: .9rem; line-height: 1.2; }
 .rank-main { display: grid; grid-template-columns: 2.6rem auto 1fr auto; gap: .6rem;
   padding: .6rem .8rem; cursor: pointer; align-items: center; }
 .rank-icon { width: 2.25rem; height: 2.25rem; border-radius: .35rem; }
+img.rank-icon { width: 2.25rem; height: 2.25rem; min-width: 2.25rem;
+  max-width: 2.25rem; max-height: 2.25rem; object-fit: cover; flex: none; }
 .rank-pos { font-size: 1.15rem; font-weight: 700; color: var(--muted); }
 .rank-1 .rank-pos { color: var(--up); }
 .rank-name { font-weight: 600; }
